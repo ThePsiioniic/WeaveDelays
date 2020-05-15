@@ -1,0 +1,12 @@
+<Bindings>
+	<Layer name="SI_KEYBINDINGS_LAYER_GENERAL">
+		<Category name="WeaveDelays">
+			<Action name="WD_TOGGLE">
+				<Up>WeaveDelaysInterface:ToggleWindow()</Up>
+			</Action>
+			<Action name="WD_TOGGLE_MODE">
+				<Up>WeaveDelaysInterface:ToggleMode()</Up>
+			</Action>
+		</Category>
+	</Layer>
+</Bindings>

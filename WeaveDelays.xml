@@ -1,0 +1,17 @@
+<GuiXml>
+    <Controls>
+		<TopLevelControl name="WEAVEDELAYSUI" hidden="true" resizeToFitDescendents="true" mouseEnabled="true" movable="true" clampedToScreen="true">
+			<Dimensions x="350" y="350" />
+			<Anchor point="CENTER" relativeTo="GuiRoot" relativePoint="TOPLEFT" offsetX="400" offsetY="500" />
+			<Controls>
+				<Backdrop name="$(parent)BG" centerColor="00000000" edgeColor="FFCCCCCC" layer="1" level="1">
+					<AnchorFill/>
+					<Edge edgeSize="1"/>
+					<Dimensions x="350" y="350"/>
+				</Backdrop>
+				
+				
+			</Controls>
+		</TopLevelControl>
+    </Controls>
+</GuiXml>
