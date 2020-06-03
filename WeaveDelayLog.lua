@@ -201,23 +201,45 @@ function WeaveDelayLog.new()
 	end
 	
 	function self.getMeanDelaySinceLastSkill(barIndex, slotId, historySize)
-		local v,n = self.getMean(statistics.delaySinceLastSkill[barIndex][slotId], historySize)
+		local v,n
+		if barIndex ~= nil then
+			if statistics.delaySinceLastSkill[barIndex] ~= nil and statistics.delaySinceLastSkill[barIndex][slotId] ~= nil then
+				v,n = self.getMean(statistics.delaySinceLastSkill[barIndex][slotId], historySize)
+			else
+				v,n = 0,0
+			end
+		else
+			return 0,1
+		end
+			
 		return v,n
 	end
 	
 	function self.getMeanDelaySinceLastLightAttack(barIndex, slotId, historySize)
-		local v,n = self.getMean(statistics.delaySinceLastLightAttack[barIndex][slotId], historySize)
-		return v,n
+		if barIndex ~= nil then
+			local v,n = self.getMean(statistics.delaySinceLastLightAttack[barIndex][slotId], historySize)
+			return v,n
+		else
+			return 0,1
+		end
 	end
 	
 	function self.getMissedLightAttacksBefore(barIndex, slotId, historySize)
-		local v,n = self.getMean(statistics.missedLightAttacksBefore[barIndex][slotId], historySize)
-		return math.floor(0.1+v*n)
+		if barIndex ~= nil then
+			local v,n = self.getMean(statistics.missedLightAttacksBefore[barIndex][slotId], historySize)
+			return math.floor(0.1+v*n)
+		else
+			return 0,1
+		end
 	end
 	
 	function self.getMissedLightAttacksAfter(barIndex, slotId, historySize)
-		local v,n = self.getMean(statistics.missedLightAttacksAfter[barIndex][slotId], historySize)
-		return math.floor(0.1+v*n)
+		if barIndex ~= nil then
+			local v,n = self.getMean(statistics.missedLightAttacksAfter[barIndex][slotId], historySize)
+			return math.floor(0.1+v*n)
+		else
+			return 0,1
+		end
 	end
 	
     function self.getLastAction()
@@ -278,7 +300,7 @@ function WeaveDelayLog.new()
 			-- detect missing light attacks
 			local previousAction = self.getLastAction()
 			--d("getLastAction:",  previousAction)
-			if previousAction ~= nil then
+			if previousAction ~= nil and previousBarIndex ~= nil and activeBarIndex ~= nil then
 				local previousTime , previousBarIndex, previousSlotId, _, _, _, _ = unpack(previousAction)
 				--d("prev", previousTime , previousBarIndex, previousSlotId)
 				--d(t,previousTime,settings.delayBetweenSkillsMax,self.isSkill(previousSlotId))
@@ -292,7 +314,9 @@ function WeaveDelayLog.new()
 			end
 		end
 
-	    table.insert(playerActions, playerAction)
+		if activeBarIndex ~= nil then
+			table.insert(playerActions, playerAction)
+		end
 		
     end
    
