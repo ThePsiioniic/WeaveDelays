@@ -299,17 +299,16 @@ function WeaveDelayLog.new()
 			
 			-- detect missing light attacks
 			local previousAction = self.getLastAction()
-			--d("getLastAction:",  previousAction)
-			if previousAction ~= nil and previousBarIndex ~= nil and activeBarIndex ~= nil then
+			if previousAction ~= nil then
 				local previousTime , previousBarIndex, previousSlotId, _, _, _, _ = unpack(previousAction)
-				--d("prev", previousTime , previousBarIndex, previousSlotId)
-				--d(t,previousTime,settings.delayBetweenSkillsMax,self.isSkill(previousSlotId))
-				if (t - previousTime) < settings.delayBetweenSkillsMax and self.isSkill(previousSlotId) then
-					table.insert(statistics.missedLightAttacksAfter[previousBarIndex][previousSlotId], 1)
-					table.insert(statistics.missedLightAttacksBefore[activeBarIndex][slotId], 1)
-				else
-					table.insert(statistics.missedLightAttacksAfter[previousBarIndex][previousSlotId], 0)
-					table.insert(statistics.missedLightAttacksBefore[activeBarIndex][slotId], 0)
+				if previousBarIndex ~= nil and activeBarIndex ~= nil then
+					if (t - previousTime) < settings.delayBetweenSkillsMax and self.isSkill(previousSlotId) then
+						table.insert(statistics.missedLightAttacksAfter[previousBarIndex][previousSlotId], 1)
+						table.insert(statistics.missedLightAttacksBefore[activeBarIndex][slotId], 1)
+					else
+						table.insert(statistics.missedLightAttacksAfter[previousBarIndex][previousSlotId], 0)
+						table.insert(statistics.missedLightAttacksBefore[activeBarIndex][slotId], 0)
+					end
 				end
 			end
 		end

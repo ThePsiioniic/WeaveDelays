@@ -7,7 +7,7 @@
 				<Backdrop name="$(parent)BG" centerColor="00000000" edgeColor="FFCCCCCC" layer="1" level="1">
 					<AnchorFill/>
 					<Edge edgeSize="1"/>
-					<Dimensions x="350" y="350"/>
+					<Dimensions x="500" y="500"/>
 				</Backdrop>
 				
 				

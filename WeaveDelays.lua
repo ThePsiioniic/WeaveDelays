@@ -2,7 +2,7 @@ local WeaveDelays = {}
 
 WeaveDelays.name                = 'WeaveDelays'
 WeaveDelays.slash               = "/weavedelays"
-WeaveDelays.version             = 0.2
+WeaveDelays.version             = 0.3
 WeaveDelays.DefaultSavedVars    = {savedRuns = {}}
 WeaveDelays.displayTimeMax      = 999
 WeaveDelays.displayTimeMin      = -99
@@ -33,7 +33,7 @@ WeaveDelays.frontBarSkills = {}
 WeaveDelays.backBarSkills = {}
 
 WeaveDelays.displayMode = 1
-WeaveDelays.maxMode = 4
+WeaveDelays.maxMode = 5
 WeaveDelays.windowShow = false
 
 function WeaveDelays.Reset()
@@ -131,6 +131,15 @@ end
 
 function WeaveDelays.FormatTimeMilliseconds(timeMilliseconds)
 	return ""..math.floor(timeMilliseconds)
+end
+
+function WeaveDelays.FormatTimeSeconds(timeMilliseconds)
+	if timeMilliseconds < 10000 then
+		return ""..math.floor(timeMilliseconds*0.01)*0.1
+	else
+		return ""..math.floor(timeMilliseconds*0.001)
+	end
+	
 end
 
 function WeaveDelays.Update()
@@ -235,6 +244,19 @@ function WeaveDelays.UpdateReport()
 					lbl:SetText("")
 					WeaveDelays.SetColorN(ctl, -1)
 				end
+			elseif WeaveDelays.displayMode == 5 then
+				local delta = WeaveDelays.log.getDelayS1_x_S2(j,i)
+				local n     = WeaveDelays.log.getTransitionsS1_x_S2(j,i)
+				
+				if delta ~= nil and delta > 0 and n ~= nil then
+					local totalTime = delta * n
+					lbl:SetText(WeaveDelays.FormatTimeSeconds(totalTime))
+					WeaveDelays.SetColorN(ctl, totalTime/1000)
+				else
+					lbl:SetText("")
+					WeaveDelays.SetColorN(ctl, -1)
+				end
+				
 			else
 				lbl:SetText("")
 				lbl:SetText("")
@@ -244,14 +266,22 @@ function WeaveDelays.UpdateReport()
 	end
 			
 	local lbl = WINDOW_MANAGER:GetControlByName("WEAVEDELAYSUI_HEADER_LABEL")
+	local statusLbl = WINDOW_MANAGER:GetControlByName("WEAVEDELAYSUI_STATUS_LABEL")
 	if WeaveDelays.displayMode == 1 then
-		lbl:SetText("T")
+		lbl:SetText("t")
+		statusLbl:SetText("average time lost between casts of skills x and y")
 	elseif WeaveDelays.displayMode == 2 then
 		lbl:SetText("C")
+		statusLbl:SetText("number of transitions skill x - LA - skill y")
 	elseif WeaveDelays.displayMode == 3 then
 		lbl:SetText("M")
+		statusLbl:SetText("number of transitions skill x - skill y (no LA)")
 	elseif WeaveDelays.displayMode == 4 then
 		lbl:SetText("R")
+		statusLbl:SetText("fraction of missed light attacks between skill x and skill y")
+	elseif WeaveDelays.displayMode == 5 then
+		lbl:SetText("T")
+		statusLbl:SetText("total time lost between casts of skills x and y")
 	end
 	
 	
@@ -401,11 +431,6 @@ function WeaveDelays:Initialize()
 		
 	end
 	
-	d(GetSlotBoundId(3),WeaveDelays.GetTextureFromAbilityId(GetSlotBoundId(3)))
-	--WINDOW_MANAGER:GetControlByName('WEAVEDELAYSUIx00'):SetNormalTexture(WeaveDelays.GetTextureFromAbilityId(GetSlotBoundId(3)))
-	--WINDOW_MANAGER:GetControlByName('WEAVEDELAYSUIx01'):SetNormalTexture(WeaveDelays.GetTextureFromAbilityId(GetSlotBoundId(4)))
-	--WINDOW_MANAGER:GetControlByName('WEAVEDELAYSUIx02'):SetNormalTexture(WeaveDelays.GetTextureFromAbilityId(GetSlotBoundId(5)))
-	
 	local parentControl = WINDOW_MANAGER:GetControlByName('WEAVEDELAYSUIBG')
 	for i = 0,12 do		
 		local ctl = WINDOW_MANAGER:CreateControl("WEAVEDELAYSUI_GRID_TOP_HEADER_"..i, parentControl, CT_TEXTURE)
@@ -449,6 +474,15 @@ function WeaveDelays:Initialize()
 		end
 	end
 	
+	local statusLbl = WINDOW_MANAGER:CreateControl("WEAVEDELAYSUI_STATUS_LABEL", parentControl, CT_LABEL)
+	statusLbl:SetFont("ZoFontGameMedium")
+	statusLbl:SetColor(0.9,0.9,0.9,0.9)
+	statusLbl:SetDimensions(450, 32)
+	statusLbl:SetDrawTier(2)
+	statusLbl:SetDrawLayer(6)
+	statusLbl:SetAnchor(TOPLEFT, parentControl, TOPLEFT, 10, 465)
+	
+	statusLbl:SetText(WeaveDelays.name.." v"..WeaveDelays.version)
 	
 	ZO_CreateStringId("SI_BINDING_NAME_WD_TOGGLE", "Toggle WeaveDelays window")
 	ZO_CreateStringId("SI_BINDING_NAME_WD_TOGGLE_MODE", "Toggle WeaveDelays mode")
