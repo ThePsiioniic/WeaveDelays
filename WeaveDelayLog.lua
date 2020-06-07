@@ -276,7 +276,7 @@ function WeaveDelayLog.new()
 		    timerLastLightAttack = t
 			
 			local delta = math.floor(t - timerLastSkillEndTime)
-			if delta < settings.delaySkillLightAttackMax and lastSkillSlotId > 0 then
+			if lastSkillBarIndex ~= nil and delta < settings.delaySkillLightAttackMax and lastSkillSlotId > 0 then
 			    table.insert(statistics.delaySinceLastSkill[lastSkillBarIndex][lastSkillSlotId], delta)
 			end
 			
