@@ -152,15 +152,20 @@ function WeaveDelays.Update()
 	local activeBarIndex = WeaveDelays.log.getActiveBarIndex()
 	for i = 1, WeaveDelays.numSlots do
 	
-		local v, n = WeaveDelays.log.getMeanDelaySinceLastSkill(activeBarIndex, WeaveDelays.slotOffset+i, historySize)
-		local s = WeaveDelays.ClipRange(v, WeaveDelays.displayTimeMin, WeaveDelays.displayTimeMax)
-		WeaveDelays.slotBottomLabel[i]:SetText(WeaveDelays.FormatTimeMilliseconds(s))
-		WeaveDelays.SetColor(WeaveDelays.slotBottomBar[i], s, n)
+		local v_top, n_top = WeaveDelays.log.getMeanDelaySinceLastLightAttack(activeBarIndex, WeaveDelays.slotOffset+i, historySize)
+		local v_bottom, n_bottom = WeaveDelays.log.getMeanDelaySinceLastSkill(activeBarIndex, WeaveDelays.slotOffset+i, historySize)
+
+		local v_total = v_top + v_bottom
+		local n_total = n_top + n_bottom
 		
-		v, n = WeaveDelays.log.getMeanDelaySinceLastLightAttack(activeBarIndex, WeaveDelays.slotOffset+i, historySize)
-		s = WeaveDelays.ClipRange(v, WeaveDelays.displayTimeMin, WeaveDelays.displayTimeMax)
-		WeaveDelays.slotTopLabel[i]:SetText(WeaveDelays.FormatTimeMilliseconds(s))
-		WeaveDelays.SetColor(WeaveDelays.slotTopBar[i], s, n)
+		local s_top = WeaveDelays.ClipRange(v_top, WeaveDelays.displayTimeMin, WeaveDelays.displayTimeMax)
+		local s_bottom = WeaveDelays.ClipRange(v_total, WeaveDelays.displayTimeMin, WeaveDelays.displayTimeMax)
+		
+		WeaveDelays.slotTopLabel[i]:SetText(WeaveDelays.FormatTimeMilliseconds(s_top))
+		WeaveDelays.slotBottomLabel[i]:SetText(WeaveDelays.FormatTimeMilliseconds(s_bottom))
+		
+		WeaveDelays.SetColor(WeaveDelays.slotTopBar[i], v_total, n_total)
+		WeaveDelays.SetColor(WeaveDelays.slotBottomBar[i], v_total, n_total)
 		
 		WeaveDelays.slotTopWarningLabel[i]:SetText(""..WeaveDelays.log.getMissedLightAttacksBefore(activeBarIndex, WeaveDelays.slotOffset+i, historySize))
 		WeaveDelays.slotBottomWarningLabel[i]:SetText(""..WeaveDelays.log.getMissedLightAttacksAfter(activeBarIndex, WeaveDelays.slotOffset+i, historySize))
