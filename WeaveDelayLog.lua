@@ -24,6 +24,19 @@ function WeaveDelayLog.new()
 	
     local statistics = {}
 	
+	-- those durations are not taken from the ones provided by esoui events
+	local customAbilityActiveTimes = {
+		[40382]  = 19500.0,
+		[103706] = 36000.0,
+		[61919]  = 40000.0,
+		[35434]  = 20000.0,
+	}
+	
+	local abilityActiveTimes = {}
+	for k, v in pairs(customAbilityActiveTimes) do
+		abilityActiveTimes[k] = v
+	end
+		
 	function self.reset()
 		playerActions = {}
 		
@@ -79,7 +92,7 @@ function WeaveDelayLog.new()
 		local lastActionType = -1
 		
 		for i=1,#playerActions do
-			local t, barIndex, slotId, boundId, channeled, castTime, channelTime = unpack(playerActions[i])
+			local t, barIndex, slotId, boundId, channeled, castTime, channelTime, activeTime = unpack(playerActions[i])
 			
 			if self.isLightAttack(slotId) then
 				lastActionType = 1
@@ -242,6 +255,41 @@ function WeaveDelayLog.new()
 		end
 	end
 	
+	function self.getUptime(barIndex, slotId, historySize)
+		if barIndex ~= nil and #playerActions > 0 then
+			
+			local i = #playerActions
+			local numberOfCasts = 0
+			local t_now = playerActions[#playerActions][1]
+			local t = t_now
+			local t_active = 0
+			local t_firstCast = 0
+			
+			local t_maxIntervall = 100000
+			
+			while i>0 and numberOfCasts < historySize do
+				local t_, barIndex_, slotId_, boundId_, channeled_, castTime_, channelTime_, activeTime_ = unpack(playerActions[i])
+				if t_now - t_ > t_maxIntervall then
+					break
+				end
+				if barIndex_ == barIndex and slotId_ == slotId then
+					numberOfCasts = numberOfCasts + 1
+					t_firstCast = t_
+					t_active = t_active + math.min(t - t_, castTime_ + channelTime_ + activeTime_)
+					t = t_
+				end
+			    i = i - 1
+			end
+			local uptime = math.min(math.max(math.floor(100 * t_active / (t_now - t_firstCast)),0),100)
+			if t_firstCast == 0 or numberOfCasts < 2 then
+				uptime = 0
+			end
+			return uptime
+		else
+			return 0
+		end
+	end
+	
     function self.getLastAction()
         if #playerActions > 0 then
 	        return playerActions[#playerActions]
@@ -268,7 +316,7 @@ function WeaveDelayLog.new()
 	end
    
     function self.registerAction(playerAction)
-        local t, barIndex, slotId, boundId, channeled, castTime, channelTime = unpack(playerAction)
+        local t, barIndex, slotId, boundId, channeled, castTime, channelTime, activeTime = unpack(playerAction)
 
    	    -- LIGHT ATTACK
 	    -- -> display time since last skill cast+duration in bottom bar
@@ -300,7 +348,7 @@ function WeaveDelayLog.new()
 			-- detect missing light attacks
 			local previousAction = self.getLastAction()
 			if previousAction ~= nil then
-				local previousTime , previousBarIndex, previousSlotId, _, _, _, _ = unpack(previousAction)
+				local previousTime , previousBarIndex, previousSlotId, _, _, _, _, _ = unpack(previousAction)
 				if previousBarIndex ~= nil and activeBarIndex ~= nil then
 					if (t - previousTime) < settings.delayBetweenSkillsMax and self.isSkill(previousSlotId) then
 						table.insert(statistics.missedLightAttacksAfter[previousBarIndex][previousSlotId], 1)
@@ -320,11 +368,31 @@ function WeaveDelayLog.new()
     end
    
     function self.slotUsed(slotId)
-	   local t = GetGameTimeMilliseconds() 
-	   local boundId = GetSlotBoundId(slotId)
-	   local channeled, castTime, channelTime = GetAbilityCastInfo(boundId)
-       local action = {t, activeBarIndex, slotId, boundId, channeled, castTime, channelTime}
-	   self.registerAction(action)
+		local t = GetGameTimeMilliseconds() 
+		local boundId = GetSlotBoundId(slotId)
+		local channeled, castTime, channelTime = GetAbilityCastInfo(boundId)
+		local activeTime = -1
+		if abilityActiveTimes[boundId] ~= nil then
+			activeTime = abilityActiveTimes[boundId]
+		end
+		local action = {t, activeBarIndex, slotId, boundId, channeled, castTime, channelTime, activeTime}
+		self.registerAction(action)
+	end
+	
+	function self.updateAbilityDuration(abilityId, activeTime)
+		if customAbilityActiveTimes[abilityId] ~= nil then
+			return
+		end
+		
+		if abilityActiveTimes[abilityId] == nil then
+			for i=1,#playerActions do
+				if playerActions[i][4] == abilityId and playerActions[i][8] < 0 then
+					playerActions[i][8] = activeTime
+				end
+			end
+			abilityActiveTimes[abilityId] = -1
+		end
+		abilityActiveTimes[abilityId] = activeTime
 	end
 	
 	function self.weaponSwap(activeWeaponPair)

@@ -23,11 +23,11 @@ WeaveDelays.skillsSinceLastLA  = 0
 WeaveDelays.banditsFound       = false
 
 WeaveDelays.controlLabelFont           = "ZoFontGameSmall"
-WeaveDelays.controlWarningLabelOffsetX = 0.6
+WeaveDelays.controlRightLabelOffsetX = 0.6
 WeaveDelays.controlBoxHeight           = 0.33
 WeaveDelays.controlBoxWidth            = 0.95
 WeaveDelays.controlTopLabelOffsetY     = -3
-WeaveDelays.controlWarningLabelOffsetY = -4
+WeaveDelays.controlRightLabelOffsetY = -4
 
 WeaveDelays.frontBarSkills = {}
 WeaveDelays.backBarSkills = {}
@@ -36,6 +36,23 @@ WeaveDelays.displayMode = 1
 WeaveDelays.maxMode = 5
 WeaveDelays.windowShow = false
 
+WeaveDelays.palettes = {
+	["uptime"] = {
+		[1] = {0,         0, 1.0, 1.0},
+		[2] = {80.0,   60.0, 1.0, 1.0},
+		[3] = {101.0, 180.0, 1.0, 1.0}
+	},
+	["delay"] = {
+		[1] = {-500, 180.0, 1.0, 1.0},
+		[2] = {0,    150.0, 1.0, 1.0},
+		[3] = {100,  90.0, 1.0, 1.0},
+		[4] = {200,  60.0, 1.0, 1.0},
+		[5] = {300,  33.0, 1.0, 1.0},
+		[6] = {400,  18.0, 1.0, 1.0},
+		[7] = {800,  10.0, 1.0, 1.0},
+		[8] = {9999,  0.0, 1.0, 1.0}
+	}
+}
 function WeaveDelays.Reset()
 	WeaveDelays.log.reset()
 	WeaveDelays.frontBarSkills = {}
@@ -69,30 +86,12 @@ function WeaveDelays.ToggleMode()
 	end
 end
 
-function WeaveDelays.SetColor(c, s, n)
+function WeaveDelays.SetColor(c, delay, n)
 	if c ~= nil then
 		if n > 0 then
-			if s > 500 then
-				c:SetColor(1.0,0.0,0.0,1.0)
-			elseif s > 300 then
-				c:SetColor(0.8,0.2,0.0,1.0)
-			elseif s > 200 then
-				c:SetColor(0.8,0.6,0.2,1.0)
-			elseif s > 150 then
-				c:SetColor(0.7,0.7,0.2,1.0)
-			elseif s > 100 then
-				c:SetColor(0.4,0.9,0.2,1.0)
-			elseif s > 70 then
-				c:SetColor(0.3,1.0,0.0,1.0)
-			elseif s > 50 then
-				c:SetColor(0.1,1.0,0.4,1.0)
-			elseif s > -50 then
-				c:SetColor(0.0,1.0,1.0,1.0)
-			elseif s > -150 then
-				c:SetColor(1.0,0.0,1.0,1.0)
-			else
-				c:SetColor(1.0,1.0,1.0,0.2)
-			end
+			local h,s,v = WeaveDelays.GetPaletteColor(WeaveDelays.palettes["delay"], delay)
+			local r,g,b = HSVToRGB(h,s,v)
+			c:SetColor(r, g, b, 1.0)
 		elseif c == -1 then
 			c:SetColor(0.8,0.8,0.8,0.4)
 		else
@@ -125,13 +124,75 @@ function WeaveDelays.SetColorN(c, s)
 	end
 end
 
+function WeaveDelays.GetPaletteColor(p, v)
+	local nPoints = #p
+	for i=1,nPoints-1 do
+		if v > p[i][1] and v <= p[i+1][1] then
+			local r = (v-p[i][1])/(p[i+1][1]-p[i][1])
+			return p[i][2]+r*(p[i+1][2]-p[i][2]),p[i][3]+r*(p[i+1][3]-p[i][3]),p[i][4]+r*(p[i+1][4]-p[i][4])
+		end
+	end
+	return 0,0,0
+end
+
+function WeaveDelays.SetColorR(c, s)
+	--WeaveDelays.palettes[paletteName]
+	if c ~= nil then
+		if s > 0 then
+			local h,s,v = WeaveDelays.GetPaletteColor(WeaveDelays.palettes["uptime"], s)
+			local r,g,b = HSVToRGB(h,s,v)
+			c:SetColor(r,g,b,1.0)
+		else
+			c:SetColor(0.8,0.8,0.8,0.4)
+		end
+	end
+end
+
+function HSVToRGB(h,s,v)
+	if s == 0 then
+		return v
+	end
+	local c = math.floor( h / 60 );
+	local d = ( h / 60 ) - c;
+	local p = v * ( 1 - s );
+	local q = v * ( 1 - s * d );
+	local t = v * ( 1 - s * ( 1 - d ) );
+	if c == 0 then
+		return v, t, p
+	elseif c == 1 then
+		return q, v, p
+	elseif c == 2 then
+		return p, v, t
+	elseif c == 3 then
+		return p, q, v
+	elseif c == 4 then
+		return t, p, v
+	elseif c == 5 then
+		return v, p, q
+	end
+end
+
+
 function WeaveDelays.ClipRange(s, s_min, s_max)
 	return math.max(math.min(s, s_max), s_min)
 end
 
 function WeaveDelays.FormatTimeMilliseconds(timeMilliseconds)
-	return ""..math.floor(timeMilliseconds)
+	if timeMilliseconds ~= nil then
+		return ""..math.floor(timeMilliseconds)
+	else
+		return "-"
+	end
 end
+
+function WeaveDelays.FormatTimePercent(timePercent)
+	if timePercent ~= nil then
+		return ""..math.floor(timePercent).."%"
+	else
+		return "-"
+	end
+end
+
 
 function WeaveDelays.FormatTimeSeconds(timeMilliseconds)
 	if timeMilliseconds < 10000 then
@@ -152,23 +213,29 @@ function WeaveDelays.Update()
 	local activeBarIndex = WeaveDelays.log.getActiveBarIndex()
 	for i = 1, WeaveDelays.numSlots do
 	
+		local v_top2   = WeaveDelays.log.getUptime(activeBarIndex, WeaveDelays.slotOffset+i, historySize)
 		local v_top, n_top = WeaveDelays.log.getMeanDelaySinceLastLightAttack(activeBarIndex, WeaveDelays.slotOffset+i, historySize)
 		local v_bottom, n_bottom = WeaveDelays.log.getMeanDelaySinceLastSkill(activeBarIndex, WeaveDelays.slotOffset+i, historySize)
 
 		local v_total = v_top + v_bottom
 		local n_total = n_top + n_bottom
+
+		local s_top2   = WeaveDelays.FormatTimePercent(v_top2)
+		local s_bottom = WeaveDelays.FormatTimeMilliseconds(WeaveDelays.ClipRange(v_top, WeaveDelays.displayTimeMin, WeaveDelays.displayTimeMax))
+		local s_top    = WeaveDelays.FormatTimeMilliseconds(WeaveDelays.ClipRange(v_total, WeaveDelays.displayTimeMin, WeaveDelays.displayTimeMax))
 		
-		local s_top = WeaveDelays.ClipRange(v_top, WeaveDelays.displayTimeMin, WeaveDelays.displayTimeMax)
-		local s_bottom = WeaveDelays.ClipRange(v_total, WeaveDelays.displayTimeMin, WeaveDelays.displayTimeMax)
+		WeaveDelays.slotTop2LeftLabel[i]:SetText(s_top2)
 		
-		WeaveDelays.slotTopLabel[i]:SetText(WeaveDelays.FormatTimeMilliseconds(s_top))
-		WeaveDelays.slotBottomLabel[i]:SetText(WeaveDelays.FormatTimeMilliseconds(s_bottom))
+		WeaveDelays.slotTopLeftLabel[i]:SetText(s_top)
+		WeaveDelays.slotBottomLeftLabel[i]:SetText(s_bottom)
+		
+		WeaveDelays.SetColorR(WeaveDelays.slotTopBar2[i], v_top2)
 		
 		WeaveDelays.SetColor(WeaveDelays.slotTopBar[i], v_total, n_total)
 		WeaveDelays.SetColor(WeaveDelays.slotBottomBar[i], v_total, n_total)
 		
-		WeaveDelays.slotTopWarningLabel[i]:SetText(""..WeaveDelays.log.getMissedLightAttacksBefore(activeBarIndex, WeaveDelays.slotOffset+i, historySize))
-		WeaveDelays.slotBottomWarningLabel[i]:SetText(""..WeaveDelays.log.getMissedLightAttacksAfter(activeBarIndex, WeaveDelays.slotOffset+i, historySize))
+		WeaveDelays.slotTopRightLabel[i]:SetText(""..WeaveDelays.log.getMissedLightAttacksBefore(activeBarIndex, WeaveDelays.slotOffset+i, historySize))
+		WeaveDelays.slotBottomRightLabel[i]:SetText(""..WeaveDelays.log.getMissedLightAttacksAfter(activeBarIndex, WeaveDelays.slotOffset+i, historySize))
 
 	end
 end
@@ -358,14 +425,18 @@ function WeaveDelays:Initialize()
 	EVENT_MANAGER:RegisterForEvent(WeaveDelays.name.."playerActionSlotAbilityUsed", EVENT_ACTION_SLOT_ABILITY_USED, WeaveDelays.playerActionSlotAbilityUsed)
 	EVENT_MANAGER:RegisterForEvent(WeaveDelays.name.."WeaponSwap", EVENT_ACTIVE_WEAPON_PAIR_CHANGED, WeaveDelays.OnWeaponSwap)
 	EVENT_MANAGER:RegisterForEvent(WeaveDelays.name.."PlayerCombatState", EVENT_PLAYER_COMBAT_STATE, WeaveDelays.OnPlayerCombatState)
+	EVENT_MANAGER:RegisterForEvent(WeaveDelays.name.."EventEffectChanged", EVENT_EFFECT_CHANGED, WeaveDelays.EventEffectChanged)
 
 	-- Controls
 	WeaveDelays.slotTopBar = {}
+	WeaveDelays.slotTopBar2 = {}
 	WeaveDelays.slotBottomBar = {}
-	WeaveDelays.slotTopLabel = {}
-	WeaveDelays.slotTopWarningLabel = {}
-	WeaveDelays.slotBottomLabel = {}
-	WeaveDelays.slotBottomWarningLabel = {}
+	WeaveDelays.slotTopLeftLabel = {}
+	WeaveDelays.slotTopRightLabel = {}
+	WeaveDelays.slotTop2LeftLabel = {}
+	WeaveDelays.slotTop2RightLabel = {}
+	WeaveDelays.slotBottomLeftLabel = {}
+	WeaveDelays.slotBottomRightLabel = {}
 	
 	-- shift top bar if bandits is found
 	if BUI and BUI.Vars then
@@ -377,15 +448,47 @@ function WeaveDelays:Initialize()
 		local width,height = slot:GetDimensions()
 		topBarOffsetHeight = -height/2
 	end
+
+	local drawTier = DT_HIGH
+	local drawLevel = 5
+	local slot = ZO_ActionBar_GetButton(WeaveDelays.slotOffset+1).slot
+	local width,height = slot:GetDimensions()
+	height = height * WeaveDelays.controlBoxHeight
+	width  = width  * WeaveDelays.controlBoxWidth
 	
-	for i = 1, WeaveDelays.numSlots do
-		local slot = ZO_ActionBar_GetButton(WeaveDelays.slotOffset+i).slot
+	local lt2 =  WINDOW_MANAGER:CreateControl(nil, slot, CT_LABEL)
+	lt2:SetFont(WeaveDelays.controlLabelFont)
+	lt2:SetDimensions(width, height)
+	lt2:SetDrawTier(drawTier)
+	lt2:SetDrawLayer(drawLevel+1)
+	lt2:SetText("uptime")
+	lt2:SetHorizontalAlignment(TEXT_ALIGN_RIGHT)
+	lt2:SetAnchor(BOTTOMLEFT,slot,TOPLEFT,-1.1*width,topBarOffsetHeight+WeaveDelays.controlTopLabelOffsetY-height)
+	
+	local lt1 =  WINDOW_MANAGER:CreateControl(nil, slot, CT_LABEL)
+	lt1:SetFont(WeaveDelays.controlLabelFont)
+	lt1:SetDimensions(width, height)
+	lt1:SetDrawTier(drawTier)
+	lt1:SetDrawLayer(drawLevel+1)
+	lt1:SetText("delay")
+	lt1:SetHorizontalAlignment(TEXT_ALIGN_RIGHT)
+	lt1:SetAnchor(BOTTOMLEFT,slot,TOPLEFT,-1.1*width,topBarOffsetHeight+WeaveDelays.controlTopLabelOffsetY+2)
+
+	local lb1 = WINDOW_MANAGER:CreateControl(nil, slot, CT_LABEL)
+	lb1:SetDimensions(width, height)
+	lb1:SetFont(WeaveDelays.controlLabelFont)
+	lb1:SetDrawTier(drawTier)
+	lb1:SetDrawLayer(drawLevel+1)
+	lb1:SetText("offset")
+	lb1:SetHorizontalAlignment(TEXT_ALIGN_RIGHT)
+	lb1:SetAnchor(TOPLEFT,slot,BOTTOMLEFT,-1.1*width,0)
 		
-		local width,height = slot:GetDimensions()
+	for i = 1, WeaveDelays.numSlots do
+		slot = ZO_ActionBar_GetButton(WeaveDelays.slotOffset+i).slot
+		
+		width,height = slot:GetDimensions()
 		height = height * WeaveDelays.controlBoxHeight
 		width  = width  * WeaveDelays.controlBoxWidth
-		local drawTier = DT_HIGH
-		local drawLevel = 5
 		local t1 = WINDOW_MANAGER:CreateControl(nil, slot, CT_TEXTURE)
 		t1:SetDimensions(width, height)
 		t1:SetDrawTier(drawTier)
@@ -394,6 +497,46 @@ function WeaveDelays:Initialize()
 		t1:SetAnchor(BOTTOMLEFT, slot,TOPLEFT,0,topBarOffsetHeight-1)
 		table.insert(WeaveDelays.slotTopBar, t1)
 		
+		local lt1 =  WINDOW_MANAGER:CreateControl(nil, slot, CT_LABEL)
+		lt1:SetFont(WeaveDelays.controlLabelFont)
+		lt1:SetDimensions(width, height)
+		lt1:SetDrawTier(drawTier)
+		lt1:SetDrawLayer(drawLevel+1)
+		lt1:SetAnchor(BOTTOMLEFT,slot,TOPLEFT,1,topBarOffsetHeight+WeaveDelays.controlTopLabelOffsetY)
+		table.insert(WeaveDelays.slotTopLeftLabel, lt1)
+		
+		local ltw1 =  WINDOW_MANAGER:CreateControl(nil, slot, CT_LABEL)
+		ltw1:SetFont(WeaveDelays.controlLabelFont)
+		ltw1:SetDimensions(width*(1.0-WeaveDelays.controlRightLabelOffsetX), height)
+		ltw1:SetDrawTier(drawTier)
+		ltw1:SetDrawLayer(drawLevel+1)
+		ltw1:SetAnchor(BOTTOMLEFT,slot,TOPLEFT,width*WeaveDelays.controlRightLabelOffsetX,topBarOffsetHeight+WeaveDelays.controlRightLabelOffsetY)
+		table.insert(WeaveDelays.slotTopRightLabel, ltw1)
+		
+		local t2 = WINDOW_MANAGER:CreateControl(nil, slot, CT_TEXTURE)
+		t2:SetDimensions(width, height)
+		t2:SetDrawTier(drawTier)
+		t2:SetDrawLayer(drawLevel)
+		t2:SetColor(1.0,1.0,1.0,0.2)
+		t2:SetAnchor(BOTTOMLEFT, slot,TOPLEFT,0,topBarOffsetHeight-1-height-2)
+		table.insert(WeaveDelays.slotTopBar2, t2)
+		
+		local lt2 =  WINDOW_MANAGER:CreateControl(nil, slot, CT_LABEL)
+		lt2:SetFont(WeaveDelays.controlLabelFont)
+		lt2:SetDimensions(width, height)
+		lt2:SetDrawTier(drawTier)
+		lt2:SetDrawLayer(drawLevel+1)
+		lt2:SetAnchor(BOTTOMLEFT,slot,TOPLEFT,1,topBarOffsetHeight+WeaveDelays.controlTopLabelOffsetY-height-2)
+		table.insert(WeaveDelays.slotTop2LeftLabel, lt2)
+		
+		local ltw2 =  WINDOW_MANAGER:CreateControl(nil, slot, CT_LABEL)
+		ltw2:SetFont(WeaveDelays.controlLabelFont)
+		ltw2:SetDimensions(width*(1.0-WeaveDelays.controlRightLabelOffsetX), height)
+		ltw2:SetDrawTier(drawTier)
+		ltw2:SetDrawLayer(drawLevel+1)
+		ltw2:SetAnchor(BOTTOMLEFT,slot,TOPLEFT,width*WeaveDelays.controlRightLabelOffsetX,topBarOffsetHeight+WeaveDelays.controlRightLabelOffsetY-height-2)
+		table.insert(WeaveDelays.slotTop2RightLabel, ltw2)
+		
 		local b1 = WINDOW_MANAGER:CreateControl(nil, slot, CT_TEXTURE)
 		b1:SetDimensions(width, height)
 		b1:SetDrawTier(drawTier)
@@ -401,38 +544,22 @@ function WeaveDelays:Initialize()
 		b1:SetColor(1.0,1.0,1.0,0.2)
 		b1:SetAnchor(TOPLEFT,slot,BOTTOMLEFT,0,1)
 		table.insert(WeaveDelays.slotBottomBar, b1)
-		
-		local lt1 =  WINDOW_MANAGER:CreateControl(nil, slot, CT_LABEL)
-		lt1:SetFont(WeaveDelays.controlLabelFont)
-		lt1:SetDimensions(width, height)
-		lt1:SetDrawTier(drawTier)
-		lt1:SetDrawLayer(drawLevel+1)
-		lt1:SetAnchor(BOTTOMLEFT,slot,TOPLEFT,1,topBarOffsetHeight+WeaveDelays.controlTopLabelOffsetY)
-		table.insert(WeaveDelays.slotTopLabel, lt1)
-		
+
 		local lb1 = WINDOW_MANAGER:CreateControl(nil, slot, CT_LABEL)
 		lb1:SetDimensions(width, height)
 		lb1:SetFont(WeaveDelays.controlLabelFont)
 		lb1:SetDrawTier(drawTier)
 		lb1:SetDrawLayer(drawLevel+1)
 		lb1:SetAnchor(TOPLEFT,slot,BOTTOMLEFT,1,-2)
-		table.insert(WeaveDelays.slotBottomLabel, lb1)
-		
-		local ltw1 =  WINDOW_MANAGER:CreateControl(nil, slot, CT_LABEL)
-		ltw1:SetFont(WeaveDelays.controlLabelFont)
-		ltw1:SetDimensions(width*(1.0-WeaveDelays.controlWarningLabelOffsetX), height)
-		ltw1:SetDrawTier(drawTier)
-		ltw1:SetDrawLayer(drawLevel+1)
-		ltw1:SetAnchor(BOTTOMLEFT,slot,TOPLEFT,width*WeaveDelays.controlWarningLabelOffsetX,topBarOffsetHeight+WeaveDelays.controlWarningLabelOffsetY)
-		table.insert(WeaveDelays.slotTopWarningLabel, ltw1)
+		table.insert(WeaveDelays.slotBottomLeftLabel, lb1)
 		
 		local lbw1 =  WINDOW_MANAGER:CreateControl(nil, slot, CT_LABEL)
 		lbw1:SetFont(WeaveDelays.controlLabelFont)
-		lbw1:SetDimensions(width*(1.0-WeaveDelays.controlWarningLabelOffsetX), height)
+		lbw1:SetDimensions(width*(1.0-WeaveDelays.controlRightLabelOffsetX), height)
 		lbw1:SetDrawTier(drawTier)
 		lbw1:SetDrawLayer(drawLevel+1)
-		lbw1:SetAnchor(TOPLEFT,slot,BOTTOMLEFT,width*WeaveDelays.controlWarningLabelOffsetX,-2)
-		table.insert(WeaveDelays.slotBottomWarningLabel, lbw1)
+		lbw1:SetAnchor(TOPLEFT,slot,BOTTOMLEFT,width*WeaveDelays.controlRightLabelOffsetX,-2)
+		table.insert(WeaveDelays.slotBottomRightLabel, lbw1)
 		
 	end
 	
@@ -505,6 +632,28 @@ function WeaveDelays.OnAddOnLoaded(eventCode, addonName)
 	end
 end
 
+function WeaveDelays.EventEffectChanged(eventCode, changeType, effectSlot, effectName, unitTag, beginTime, endTime, stackCount, iconName, buffType, effectType, abilityType, statusEffectType, unitName, unitId, abilityId, sourceType)
+	if sourceType == COMBAT_UNIT_TYPE_PLAYER then
+		if changeType == EFFECT_RESULT_GAINED or changeType == EFFECT_RESULT_FADED or changeType == EFFECT_RESULT_UPDATED then
+			local matched = false
+			for i =1,#WeaveDelays.frontBarSkills do
+				if WeaveDelays.frontBarSkills[i] == abilityId then
+					matched = true
+					break
+				end
+			end
+			for i =1,#WeaveDelays.backBarSkills do
+				if WeaveDelays.backBarSkills[i] == abilityId then
+					matched = true
+					break
+				end
+			end
+			if matched and (endTime - beginTime) > 0 then	
+				WeaveDelays.log.updateAbilityDuration(abilityId, 1000 * (endTime - beginTime))
+			end
+		end
+	end
+end
 
 
 --function WeaveDelays.MoveUI()
@@ -527,7 +676,7 @@ SLASH_COMMANDS[WeaveDelays.slash] = function (cmd)
     end
 
     if #commands == 0 then
-        return CHAT_SYSTEM:AddMessage("Please enter a valid command")
+        WeaveDelays.ToggleWindow()
     end
 
     if #commands == 1 then
