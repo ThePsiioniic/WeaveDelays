@@ -5,7 +5,7 @@
 ## APIVersion: 100030 100031
 ## SavedVariables: WeaveDelays
 ## DependsOn: LibAddonMenu-2.0
-## OptionalDependsOn: BanditsUserInterface 
+## OptionalDependsOn: BanditsUserInterface ActionDurationReminder
 
 WeaveDelayLog.lua
 WeaveDelays.lua

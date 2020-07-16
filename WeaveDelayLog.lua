@@ -30,6 +30,30 @@ function WeaveDelayLog.new()
 		[103706] = 36000.0,
 		[61919]  = 40000.0,
 		[35434]  = 20000.0,
+		[39095]  = 23000.0,
+		[40058]  = 12000.0,
+		[40094]  = 8000.0,
+		[40079]  = 10000.0,
+		[115093] = 7500.0,
+		[85850] = 8000.0,
+		[86031] = 10000.0,
+		[118639] = 12000.0,
+		[39475] = 12000.0,
+		[42056] = 15000.0,
+		[40328] = 15000.0,
+		[38256] = 15000.0,
+		[20944] = 14000.0,
+		[38264] = 12000.0,
+		[20251] = 4000.0,
+		[39105] = 10000.0,
+		[36508] = 6000.0,
+		[86156] = 5000.0,
+		[86130] = 24000.0,
+		[86045] = 6000.0,
+		[46324] = 4000.0,
+		[36935] = 20000.0,
+		[36957] = 10000.0,
+		[11870] = 12000.0,
 	}
 	
 	local abilityActiveTimes = {}
@@ -318,50 +342,50 @@ function WeaveDelayLog.new()
     function self.registerAction(playerAction)
         local t, barIndex, slotId, boundId, channeled, castTime, channelTime, activeTime = unpack(playerAction)
 
-   	    -- LIGHT ATTACK
-	    -- -> display time since last skill cast+duration in bottom bar
-	    if self.isLightAttack(slotId) then
-		    timerLastLightAttack = t
-			
-			local delta = math.floor(t - timerLastSkillEndTime)
-			if lastSkillBarIndex ~= nil and delta < settings.delaySkillLightAttackMax and lastSkillSlotId > 0 then
-			    table.insert(statistics.delaySinceLastSkill[lastSkillBarIndex][lastSkillSlotId], delta)
-			end
-			
-	    -- SKILL
-	    -- -> display time since last light attack in top bar
-	    elseif self.isSkill(slotId) then
-			local duration = castTime + channelTime
-			if duration < settings.GCD then
-			    duration = settings.GCD
-		    end
-		    timerLastSkill          = t
-			timerLastSkillEndTime = t + duration
-			lastSkillSlotId         = slotId
-			lastSkillBarIndex      = barIndex
-			
-			local delta = t - timerLastLightAttack
-			if delta < settings.delayLightAttackSkillMax then
-			    table.insert(statistics.delaySinceLastLightAttack[activeBarIndex][slotId], delta)
-			end
-			
-			-- detect missing light attacks
-			local previousAction = self.getLastAction()
-			if previousAction ~= nil then
-				local previousTime , previousBarIndex, previousSlotId, _, _, _, _, _ = unpack(previousAction)
-				if previousBarIndex ~= nil and activeBarIndex ~= nil then
-					if (t - previousTime) < settings.delayBetweenSkillsMax and self.isSkill(previousSlotId) then
-						table.insert(statistics.missedLightAttacksAfter[previousBarIndex][previousSlotId], 1)
-						table.insert(statistics.missedLightAttacksBefore[activeBarIndex][slotId], 1)
-					else
-						table.insert(statistics.missedLightAttacksAfter[previousBarIndex][previousSlotId], 0)
-						table.insert(statistics.missedLightAttacksBefore[activeBarIndex][slotId], 0)
+		if activeBarIndex ~= nil then
+			-- LIGHT ATTACK
+			-- -> display time since last skill cast+duration in bottom bar
+			if self.isLightAttack(slotId) then
+				timerLastLightAttack = t
+				
+				local delta = math.floor(t - timerLastSkillEndTime)
+				if lastSkillBarIndex ~= nil and delta < settings.delaySkillLightAttackMax and lastSkillSlotId > 0 then
+					table.insert(statistics.delaySinceLastSkill[lastSkillBarIndex][lastSkillSlotId], delta)
+				end
+				
+			-- SKILL
+			-- -> display time since last light attack in top bar
+			elseif self.isSkill(slotId) then
+				local duration = castTime + channelTime
+				if duration < settings.GCD then
+					duration = settings.GCD
+				end
+				timerLastSkill          = t
+				timerLastSkillEndTime = t + duration
+				lastSkillSlotId         = slotId
+				lastSkillBarIndex      = barIndex
+				
+				local delta = t - timerLastLightAttack
+				if delta < settings.delayLightAttackSkillMax then
+					table.insert(statistics.delaySinceLastLightAttack[activeBarIndex][slotId], delta)
+				end
+				
+				-- detect missing light attacks
+				local previousAction = self.getLastAction()
+				if previousAction ~= nil then
+					local previousTime , previousBarIndex, previousSlotId, _, _, _, _, _ = unpack(previousAction)
+					if previousBarIndex ~= nil and activeBarIndex ~= nil then
+						if (t - previousTime) < settings.delayBetweenSkillsMax and self.isSkill(previousSlotId) then
+							table.insert(statistics.missedLightAttacksAfter[previousBarIndex][previousSlotId], 1)
+							table.insert(statistics.missedLightAttacksBefore[activeBarIndex][slotId], 1)
+						else
+							table.insert(statistics.missedLightAttacksAfter[previousBarIndex][previousSlotId], 0)
+							table.insert(statistics.missedLightAttacksBefore[activeBarIndex][slotId], 0)
+						end
 					end
 				end
 			end
-		end
 
-		if activeBarIndex ~= nil then
 			table.insert(playerActions, playerAction)
 		end
 		

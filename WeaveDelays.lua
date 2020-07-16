@@ -21,6 +21,8 @@ WeaveDelays.skillBarIdx        = 0
 WeaveDelays.skillBarIdx0Id     = -1
 WeaveDelays.skillsSinceLastLA  = 0
 WeaveDelays.banditsFound       = false
+WeaveDelays.actionDurationReminderFound = false
+WeaveDelays.repositionHealthBar = true
 
 WeaveDelays.controlLabelFont           = "ZoFontGameSmall"
 WeaveDelays.controlRightLabelOffsetX = 0.6
@@ -204,7 +206,7 @@ function WeaveDelays.FormatTimeSeconds(timeMilliseconds)
 end
 
 function WeaveDelays.Update()
-	
+		
 	local historySize = WeaveDelays.historySize
 	if WeaveDelays.inCombat then
 		historySize = WeaveDelays.historySizeInCombat
@@ -360,8 +362,10 @@ function WeaveDelays.UpdateReport()
 end
 
 function WeaveDelays.playerActionSlotAbilityUsed(e, slotId)
-	WeaveDelays.log.slotUsed(slotId)
-	WeaveDelays.Update()
+	if WeaveDelays.inCombat then
+		WeaveDelays.log.slotUsed(slotId)
+		WeaveDelays.Update()
+	end
 end
 
 function  WeaveDelays.OnWeaponSwap(_, activeWeaponPair, locked)
@@ -442,11 +446,16 @@ function WeaveDelays:Initialize()
 	if BUI and BUI.Vars then
 		WeaveDelays.banditsFound = true
 	end
+	
 	local topBarOffsetHeight = 0
 	if WeaveDelays.banditsFound then
 		local slot = ZO_ActionBar_GetButton(3).slot
 		local width,height = slot:GetDimensions()
 		topBarOffsetHeight = -height/2
+	elseif WeaveDelays.actionDurationReminderFound then
+		local slot = ZO_ActionBar_GetButton(3).slot
+		local width,height = slot:GetDimensions()
+		topBarOffsetHeight = -height
 	end
 
 	local drawTier = DT_HIGH
@@ -619,12 +628,32 @@ function WeaveDelays:Initialize()
 	ZO_CreateStringId("SI_BINDING_NAME_WD_TOGGLE", "Toggle WeaveDelays window")
 	ZO_CreateStringId("SI_BINDING_NAME_WD_TOGGLE_MODE", "Toggle WeaveDelays mode")
 	
+	if not WeaveDelays.banditsFound and WeaveDelays.repositionHealthBar then
+		local _, point, relativeTo, relativePoint, offsetX, offsetY = ZO_PlayerAttributeHealth:GetAnchor(0)
+		slot = ZO_ActionBar_GetButton(WeaveDelays.slotOffset+1).slot
+		width,height = slot:GetDimensions()
+		offsetY = offsetY - 0.5*height
+		ZO_PlayerAttributeHealth:SetAnchor(point, relativeTo, relativePoint, offsetX, offsetY)
+	end
+	
+	if WeaveDelays.actionDurationReminderFound and WeaveDelays.repositionHealthBar then
+		local _, point, relativeTo, relativePoint, offsetX, offsetY = ZO_PlayerAttributeHealth:GetAnchor(0)
+		slot = ZO_ActionBar_GetButton(WeaveDelays.slotOffset+1).slot
+		width,height = slot:GetDimensions()
+		offsetY = offsetY - height
+		ZO_PlayerAttributeHealth:SetAnchor(point, relativeTo, relativePoint, offsetX, offsetY)
+	end
+	
 end
 
 function WeaveDelays.OnAddOnLoaded(eventCode, addonName)
 	if addonName == "BanditsUserInterface" then
 		WeaveDelays.banditsFound = true
 	end
+	if addonName == "ActionDurationReminder" then
+		WeaveDelays.actionDurationReminderFound = true
+	end
+	
 	
 	if addonName == WeaveDelays.name then
 		WeaveDelays:Initialize()
@@ -650,6 +679,8 @@ function WeaveDelays.EventEffectChanged(eventCode, changeType, effectSlot, effec
 			end
 			if matched and (endTime - beginTime) > 0 then	
 				WeaveDelays.log.updateAbilityDuration(abilityId, 1000 * (endTime - beginTime))
+				--d("upd time: effectName="..effectName .. "=> ".. abilityId.." t=".. 1000 * (endTime - beginTime))
+				
 			end
 		end
 	end
@@ -682,6 +713,15 @@ SLASH_COMMANDS[WeaveDelays.slash] = function (cmd)
     if #commands == 1 then
 		if commands[1] == "reset" then
 			WeaveDelays.Reset()
+		elseif commands[1] == "skills" then
+			d("----------")
+			d(GetSlotBoundId(3))
+			d(GetSlotBoundId(4))
+			d(GetSlotBoundId(5))
+			d(GetSlotBoundId(6))
+			d(GetSlotBoundId(7))
+			d(GetSlotBoundId(8))
+			d("----------")
 		elseif commands[1] == "update" then
 			WeaveDelays.Update()
 			WeaveDelays.UpdateReport()
