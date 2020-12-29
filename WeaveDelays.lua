@@ -317,7 +317,7 @@ end
 -- ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 function WeaveDelays.UiLoop()
 	if WeaveDelays.inCombat then
-		WeaveDelays.UpdateTrackedAbilities()
+		WeaveDelays.UpdateAbilityRecastBar()
 	end
 end
 
@@ -325,7 +325,7 @@ end
 function WeaveDelays.Update(fullCombat)
 	WeaveDelays.UpdateActionBar(fullCombat)
 	WeaveDelays.UpdateDelayBar()
-	WeaveDelays.UpdateTrackedAbilities()
+	WeaveDelays.UpdateAbilityRecastBar()
 end
 
 function WeaveDelays.UpdateActionBar(fullCombat)
@@ -397,6 +397,11 @@ function WeaveDelays.UpdateActionBar(fullCombat)
 end
 
 function WeaveDelays.UpdateDelayBar()
+
+	if not WeaveDelays.savedVariables.showDelayBar then
+		return
+	end
+	
 	-- delay bar
 	local bg = WINDOW_MANAGER:GetControlByName('WEAVEDELAYSBARBG')
 	local n  = WeaveDelays.savedVariables.numDelayBarSlots * WeaveDelays.savedVariables.numDelayBarRows
@@ -480,8 +485,12 @@ function WeaveDelays.UpdateDelayBar()
 	end
 end
 
-function WeaveDelays.UpdateTrackedAbilities()
+function WeaveDelays.UpdateAbilityRecastBar()
 
+	if not WeaveDelays.savedVariables.showAbilityRecastBar then
+		return
+	end
+	
 	-- tracked ability bar
 	local gameTime = GetGameTimeMilliseconds() 
 	local bg = WINDOW_MANAGER:GetControlByName('WEAVEDELAYSBAR2BG')
