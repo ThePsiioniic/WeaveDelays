@@ -1,16 +1,31 @@
 <GuiXml>
     <Controls>
-		<TopLevelControl name="WEAVEDELAYSUI" hidden="true" resizeToFitDescendents="true" mouseEnabled="true" movable="true" clampedToScreen="true">
-			<Dimensions x="350" y="350" />
-			<Anchor point="CENTER" relativeTo="GuiRoot" relativePoint="TOPLEFT" offsetX="400" offsetY="500" />
+		<TopLevelControl name="WEAVEDELAYSBAR" hidden="true" resizeToFitDescendents="true" mouseEnabled="true" movable="true" clampedToScreen="true"  layer="5" level="0">
+			<Dimensions x="520" y="20" />
+			<Anchor point="CENTER" relativeTo="GuiRoot" relativePoint="TOPLEFT" offsetX="200" offsetY="200" />
+			<OnMoveStop>
+				WeaveDelaysSaveDelayBarPosition()
+			</OnMoveStop>
 			<Controls>
-				<Backdrop name="$(parent)BG" centerColor="00000000" edgeColor="FFCCCCCC" layer="1" level="1">
+				<Backdrop name="$(parent)BG" centerColor="00000000" edgeColor="FFCCCCCC" layer="5" level="0">
 					<AnchorFill/>
 					<Edge edgeSize="1"/>
-					<Dimensions x="500" y="500"/>
+					<Dimensions x="520" y="20"/>
 				</Backdrop>
-				
-				
+			</Controls>
+		</TopLevelControl>
+		<TopLevelControl name="WEAVEDELAYSBAR2" hidden="true" resizeToFitDescendents="true" mouseEnabled="true" movable="true" clampedToScreen="true"  layer="5" level="0">
+			<Dimensions x="520" y="60" />
+			<Anchor point="CENTER" relativeTo="GuiRoot" relativePoint="TOPLEFT" offsetX="200" offsetY="200" />
+			<OnMoveStop>
+				WeaveDelaysSaveDelayBar2Position()
+			</OnMoveStop>
+			<Controls>
+				<Backdrop name="$(parent)BG" centerColor="00000000" edgeColor="FFCCCCFF" layer="5" level="0">
+					<AnchorFill/>
+					<Edge edgeSize="1"/>
+					<Dimensions x="520" y="60"/>
+				</Backdrop>
 			</Controls>
 		</TopLevelControl>
     </Controls>

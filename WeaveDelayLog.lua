@@ -21,8 +21,10 @@ function WeaveDelayLog.new()
 	settings.delaySkillLightAttackMax = 2500
 	settings.delayLightAttackSkillMax = 2500
 	settings.delayBetweenSkillsMax    = 2500
+	settings.lightAttackTimeout       = 1000
 	
     local statistics = {}
+	local combatEndMarkerPosition = -1
 	
 	-- those durations are not taken from the ones provided by esoui events
 	local customAbilityActiveTimes = {
@@ -54,13 +56,37 @@ function WeaveDelayLog.new()
 		[36935] = 20000.0,
 		[36957] = 10000.0,
 		[11870] = 12000.0,
+		[86027] = 10000.0,
+		[40457] = 11000.0,
+		[20930] = 14000.0,
+		[20660] = 14000.0,
+		[40317] = 1000660.0,
+		[386606] = 10000.0,
+		[38839] = 10000.0,
 	}
 	
 	local abilityActiveTimes = {}
 	for k, v in pairs(customAbilityActiveTimes) do
 		abilityActiveTimes[k] = v
 	end
-		
+
+	-- this might register shortly after the first skill(s), so only remove everything unitl last combat end marker
+	function self.startCombat()
+		if combatEndMarkerPosition > 0 then
+			local newPlayerActions = {}
+			for i=combatEndMarkerPosition+1,#playerActions do
+				table.insert(newPlayerActions, playerActions[i])
+			end
+			playerActions = newPlayerActions
+			combatEndMarkerPosition = -1
+		end
+	end
+	
+	-- save a combat end marker
+	function self.endCombat()
+		combatEndMarkerPosition = #playerActions
+	end
+	
 	function self.reset()
 		playerActions = {}
 		
@@ -102,6 +128,8 @@ function WeaveDelayLog.new()
 				statistics.missedLightAttacksAfter[barIndex][slotIndex] = {}
 			end
 		end
+		
+	
 	end
 	
 	function self.analyze()
@@ -340,8 +368,7 @@ function WeaveDelayLog.new()
 	end
    
     function self.registerAction(playerAction)
-        local t, barIndex, slotId, boundId, channeled, castTime, channelTime, activeTime = unpack(playerAction)
-
+        local t, barIndex, slotId, boundId, channeled, castTime, channelTime, activeTime, confirmed, queued = unpack(playerAction)
 		if activeBarIndex ~= nil then
 			-- LIGHT ATTACK
 			-- -> display time since last skill cast+duration in bottom bar
@@ -360,12 +387,16 @@ function WeaveDelayLog.new()
 				if duration < settings.GCD then
 					duration = settings.GCD
 				end
+				
+				local delta2 = math.floor(t - timerLastSkillEndTime)
+				
 				timerLastSkill          = t
 				timerLastSkillEndTime = t + duration
 				lastSkillSlotId         = slotId
 				lastSkillBarIndex      = barIndex
 				
 				local delta = t - timerLastLightAttack
+				local lightAttackMissed = false
 				if delta < settings.delayLightAttackSkillMax then
 					table.insert(statistics.delaySinceLastLightAttack[activeBarIndex][slotId], delta)
 				end
@@ -378,19 +409,64 @@ function WeaveDelayLog.new()
 						if (t - previousTime) < settings.delayBetweenSkillsMax and self.isSkill(previousSlotId) then
 							table.insert(statistics.missedLightAttacksAfter[previousBarIndex][previousSlotId], 1)
 							table.insert(statistics.missedLightAttacksBefore[activeBarIndex][slotId], 1)
+							lightAttackMissed = true
 						else
 							table.insert(statistics.missedLightAttacksAfter[previousBarIndex][previousSlotId], 0)
 							table.insert(statistics.missedLightAttacksBefore[activeBarIndex][slotId], 0)
 						end
 					end
 				end
+				
 			end
-
 			table.insert(playerActions, playerAction)
 		end
 		
     end
-   
+		
+	-- analysis
+	function self.getLastCombos(numCombos)
+		local combos = {}
+		local skillCastTime, skillIndex, boundID, skillDelay, lightAttackRegistered, lightAttackConfirmed, lightAttackQueued, duration = nil,0,0,0,false,false,false,0
+		local combo = nil
+		local playerAction
+		local n = #playerActions
+		while n > 0 do
+			playerAction = playerActions[n]
+			if playerAction[3] > 2 then
+				if skillCastTime ~= nil then
+					combo = {skillIndex, boundID, skillCastTime - playerAction[1] - duration, lightAttackRegistered, lightAttackConfirmed, lightAttackQueued, skillCastTime, playerAction[2]}
+					table.insert(combos, combo)
+					if #combos >= numCombos then
+						break
+					end
+				end
+				skillCastTime = playerAction[1]
+				skillIndex    = playerAction[3] - 2
+				boundID       = playerAction[4]
+				duration      = math.max(playerAction[6] + playerAction[7], settings.GCD)
+
+				lightAttackRegistered = false
+				lightAttackConfirmed  = false
+				lightAttackQueued     = false
+			elseif playerAction[3] == 1 then
+				lightAttackRegistered = true
+				lightAttackConfirmed  = playerAction[9]
+				lightAttackQueued     = playerAction[10]
+			end
+			n = n - 1
+		end
+		if #combos < numCombos then
+			if playerActions ~= nil and playerActions[n] ~= nil then
+				playerAction = playerActions[n]
+				combo = {skillIndex, boundID, 0, lightAttackRegistered, lightAttackConfirmed, lightAttackQueued, skillCastTime, playerAction[2]}
+				table.insert(combos, combo)
+			end
+		end
+		
+		return combos
+	end
+	
+	-- combat
     function self.slotUsed(slotId)
 		local t = GetGameTimeMilliseconds() 
 		local boundId = GetSlotBoundId(slotId)
@@ -399,8 +475,38 @@ function WeaveDelayLog.new()
 		if abilityActiveTimes[boundId] ~= nil then
 			activeTime = abilityActiveTimes[boundId]
 		end
-		local action = {t, activeBarIndex, slotId, boundId, channeled, castTime, channelTime, activeTime}
+		local action = {t, activeBarIndex, slotId, boundId, channeled, castTime, channelTime, activeTime, false, false}
 		self.registerAction(action)
+	end
+	
+	function self.confirmLightAttack()
+		local t = GetGameTimeMilliseconds() 
+		local n = #playerActions
+		while n > 0 do
+			if t - playerActions[n][1] > settings.lightAttackTimeout then
+				break
+			end
+			if playerActions[n][3] == 1 then
+				playerActions[n][9] = true
+				break
+			end
+			n = n - 1
+		end
+	end
+	
+	function self.flagLightAttackQueued()
+		local t = GetGameTimeMilliseconds() 
+		local n = #playerActions
+		while n > 0 do
+			if t - playerActions[n][1] > settings.lightAttackTimeout then
+				break
+			end
+			if playerActions[n][3] == 1 then
+				playerActions[n][10] = true
+				break
+			end
+			n = n - 1
+		end
 	end
 	
 	function self.updateAbilityDuration(abilityId, activeTime)

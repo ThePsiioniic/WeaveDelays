@@ -3,7 +3,7 @@
 ## Author: Psiioniic
 ## Version: 0.3.4
 ## APIVersion: 100030 100031
-## SavedVariables: WeaveDelays
+## SavedVariables: WeaveDelaysVars
 ## DependsOn: LibAddonMenu-2.0
 ## OptionalDependsOn: BanditsUserInterface ActionDurationReminder
 

@@ -1,17 +1,21 @@
-local WeaveDelays = {}
+WeaveDelays = WeaveDelays or { }
+local WeaveDelays = WeaveDelays
 
 WeaveDelays.name                = 'WeaveDelays'
 WeaveDelays.slash               = "/weavedelays"
-WeaveDelays.version             = 0.3
-WeaveDelays.DefaultSavedVars    = {savedRuns = {}}
+WeaveDelays.version             = 0.4
+WeaveDelays.DefaultSavedVars    = {["delayBarOffsetX"]=300,["delayBarOffsetY"]=300,["delayBar2OffsetX"]=300,["delayBar2OffsetY"]=400,["numDelayBarSlots"]=5,["numDelayBarRows"]=1,["showDelayBar"]=true,["showAbilityRecastBar"]=false,["showSkillsInDelayBar"]=false,["showDelayBarOnlyInCombat"]=false,["showDelayBarAfterCombat"]=10,["unlockUI"]=false,["showActionBarAddon"]=true}
 WeaveDelays.displayTimeMax      = 999
-WeaveDelays.displayTimeMin      = -99
+WeaveDelays.displayTimeMin      = -99.
 WeaveDelays.historySize 	    = 99999
 WeaveDelays.historySizeInCombat = 5
 WeaveDelays.numSlots            = 6
 WeaveDelays.slotOffset          = 2
+WeaveDelays.playerName = GetRawUnitName("player")
 
 WeaveDelays.inCombat           = false
+WeaveDelays.startCombatSlotId  = -1
+WeaveDelays.startCombattime    = -1
 WeaveDelays.lastLAtime 	       = 0
 WeaveDelays.lastSkillStartTime = 0
 WeaveDelays.lastSkillEndTime   = 0
@@ -21,7 +25,7 @@ WeaveDelays.skillBarIdx        = 0
 WeaveDelays.skillBarIdx0Id     = -1
 WeaveDelays.skillsSinceLastLA  = 0
 WeaveDelays.banditsFound       = false
-WeaveDelays.actionDurationReminderFound = false
+WeaveDelays.actionDurationReminderFound = falsew
 WeaveDelays.repositionHealthBar = true
 
 WeaveDelays.controlLabelFont           = "ZoFontGameSmall"
@@ -38,6 +42,48 @@ WeaveDelays.displayMode = 1
 WeaveDelays.maxMode = 5
 WeaveDelays.windowShow = false
 
+WeaveDelays.textureCache = {}
+WeaveDelays.textureCache[114716] = "/esoui/art/icons/ability_sorcerer_thunderstomp_proc.dds"
+
+WeaveDelays.effectiveAbilityDurations = {
+	[20779] = 20000,
+	[23213] = 23000,
+	[24328] = 6000,
+	[32673] = 6000,
+	[39053] = 10000,
+	[39073] = 10000,
+	[39095] = 23000,
+	[40058] = 12000,
+	[40094] = 8000,
+	[40382] = 18000,
+	[40457] = 12000,
+	[40465] = 16000,
+	[41958] = 30000,
+	[42028] = 9000,
+	[42038] = 8000,
+	[50079] = 10000,
+	[61500] = 8000,
+	[103706] = 36000,
+	[117850] = 10000,
+	[118008] = 12000,
+	[118726] = 16000,
+--	[117749] = 2900,
+	}
+	
+WeaveDelays.abilityPriorities = {
+	[117850] = 100,
+	[39053] = 1000,
+	[118726] = 500,
+	[40457] = 50,
+	[40382] = 18000,
+	[118008] = 12000,
+	[42028] = 9000,
+	[117749] = 2900,
+	[40465] = 16000,
+	}
+WeaveDelays.trackedAbilities = {}
+
+	
 WeaveDelays.palettes = {
 	["uptime"] = {
 		[1] = {0,         0, 1.0, 1.0},
@@ -47,11 +93,11 @@ WeaveDelays.palettes = {
 	["delay"] = {
 		[1] = {-500, 180.0, 1.0, 1.0},
 		[2] = {0,    150.0, 1.0, 1.0},
-		[3] = {100,  90.0, 1.0, 1.0},
-		[4] = {200,  60.0, 1.0, 1.0},
-		[5] = {300,  33.0, 1.0, 1.0},
-		[6] = {400,  18.0, 1.0, 1.0},
-		[7] = {800,  10.0, 1.0, 1.0},
+		[3] = {50,  90.0, 1.0, 1.0},
+		[4] = {100,  60.0, 1.0, 1.0},
+		[5] = {150,  33.0, 1.0, 1.0},
+		[6] = {200,  18.0, 1.0, 1.0},
+		[7] = {400,  10.0, 1.0, 1.0},
 		[8] = {9999,  0.0, 1.0, 1.0}
 	}
 }
@@ -63,30 +109,63 @@ end
 
 WeaveDelaysInterface = WeaveDelaysInterface or {}
 
+-- ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+--                 UI
+-- ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
 function WeaveDelaysInterface.ToggleWindow()
 	WeaveDelays.ToggleWindow()
-end
-function WeaveDelaysInterface.ToggleMode()
-	WeaveDelays.ToggleMode()
 end
 
 function WeaveDelays.ToggleWindow()
 	WeaveDelays.windowShow = not WeaveDelays.windowShow
 	WEAVEDELAYSUI:SetHidden(not WeaveDelays.windowShow)
-	if WeaveDelays.windowShow then
-		WeaveDelays.UpdateReport()
+end
+
+
+function WeaveDelaysSaveDelayBarPosition()
+	WeaveDelays.savedVariables.delayBarOffsetX = WEAVEDELAYSBAR:GetLeft()
+	WeaveDelays.savedVariables.delayBarOffsetY = WEAVEDELAYSBAR:GetTop()
+end
+
+
+function WeaveDelays.restoreDelayBarPosition()
+	WEAVEDELAYSBAR:ClearAnchors()
+	WEAVEDELAYSBAR:SetAnchor(TOPLEFT, GuiRoot, TOPLEFT, WeaveDelays.savedVariables.delayBarOffsetX, WeaveDelays.savedVariables.delayBarOffsetY)
+end
+
+function WeaveDelaysSaveDelayBar2Position()
+	WeaveDelays.savedVariables.delayBar2OffsetX = WEAVEDELAYSBAR2:GetLeft()
+	WeaveDelays.savedVariables.delayBar2OffsetY = WEAVEDELAYSBAR2:GetTop()
+end
+
+function WeaveDelays.restoreDelayBar2Position()
+	WEAVEDELAYSBAR2:ClearAnchors()
+	WEAVEDELAYSBAR2:SetAnchor(TOPLEFT, GuiRoot, TOPLEFT, WeaveDelays.savedVariables.delayBar2OffsetX, WeaveDelays.savedVariables.delayBar2OffsetY)
+end
+
+function WeaveDelays.OnReticleHiddenUpdate()
+	if not WeaveDelays.savedVariables.unlockUI then
+		if WeaveDelays.savedVariables.showDelayBar then
+			WEAVEDELAYSBAR:SetHidden(IsReticleHidden())
+		end
+		if WeaveDelays.savedVariables.showAbilityRecastBar then
+			WEAVEDELAYSBAR2:SetHidden(IsReticleHidden())
+		end
+	else
+		if WeaveDelays.savedVariables.showDelayBar then
+			WEAVEDELAYSBAR:SetHidden(false)
+		end
+		if WeaveDelays.savedVariables.showAbilityRecastBar then
+			WEAVEDELAYSBAR2:SetHidden(false)
+		end
 	end
 end
 
-function WeaveDelays.ToggleMode()
-	WeaveDelays.displayMode = WeaveDelays.displayMode +1
-	if WeaveDelays.displayMode > WeaveDelays.maxMode then
-		WeaveDelays.displayMode = 1
-	end
-	if WeaveDelays.windowShow then
-		WeaveDelays.UpdateReport()
-	end
-end
+
+-- ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+--                 color helper functions
+-- ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 function WeaveDelays.SetColor(c, delay, n)
 	if c ~= nil then
@@ -94,7 +173,7 @@ function WeaveDelays.SetColor(c, delay, n)
 			local h,s,v = WeaveDelays.GetPaletteColor(WeaveDelays.palettes["delay"], delay)
 			local r,g,b = HSVToRGB(h,s,v)
 			c:SetColor(r, g, b, 1.0)
-		elseif c == -1 then
+		elseif delay == -1 then
 			c:SetColor(0.8,0.8,0.8,0.4)
 		else
 			c:SetColor(1.0,1.0,1.0,0.2)
@@ -179,6 +258,34 @@ function WeaveDelays.ClipRange(s, s_min, s_max)
 	return math.max(math.min(s, s_max), s_min)
 end
 
+function spairs(t, order)
+    -- collect the keys
+    local keys = {}
+    for k in pairs(t) do keys[#keys+1] = k end
+
+    -- if order function given, sort by it by passing the table and keys a, b,
+    -- otherwise just sort the keys 
+    if order then
+        table.sort(keys, function(a,b) return order(t, a, b) end)
+    else
+        table.sort(keys)
+    end
+
+    -- return the iterator function
+    local i = 0
+    return function()
+        i = i + 1
+        if keys[i] then
+            return keys[i], t[keys[i]]
+        end
+    end
+end
+
+
+-- ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+--                 string formatting
+-- ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
 function WeaveDelays.FormatTimeMilliseconds(timeMilliseconds)
 	if timeMilliseconds ~= nil then
 		return ""..math.floor(timeMilliseconds)
@@ -205,172 +312,299 @@ function WeaveDelays.FormatTimeSeconds(timeMilliseconds)
 	
 end
 
-function WeaveDelays.Update()
-		
-	local historySize = WeaveDelays.historySize
+-- ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+--                 draw UI
+-- ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+function WeaveDelays.UiLoop()
 	if WeaveDelays.inCombat then
-		historySize = WeaveDelays.historySizeInCombat
+		WeaveDelays.UpdateTrackedAbilities()
+	end
+end
+
+
+function WeaveDelays.Update(fullCombat)
+	WeaveDelays.UpdateActionBar(fullCombat)
+	WeaveDelays.UpdateDelayBar()
+	WeaveDelays.UpdateTrackedAbilities()
+end
+
+function WeaveDelays.UpdateActionBar(fullCombat)
+
+	-- actionBar
+	--local historySize = WeaveDelays.historySizeInCombat
+	local historySize = WeaveDelays.savedVariables.numDelayBarSlots * WeaveDelays.savedVariables.numDelayBarRows
+	if fullCombat ~= nil and fullCombat then
+		historySize = WeaveDelays.historySize
     end
 	
+	local combos = WeaveDelays.log.getLastCombos(historySize)
+	
 	local activeBarIndex = WeaveDelays.log.getActiveBarIndex()
+	
+	local delays = {}
+	local missedLightAttacks = {}
+	local missedLightAttacksAfterSkill = {}
+
+	for i = 1, WeaveDelays.numSlots do
+		table.insert(delays, {})
+		table.insert(missedLightAttacks, 0)
+		table.insert(missedLightAttacksAfterSkill, 0)
+	end
+	
+	-- {skillIndex, boundID, 0, lightAttackRegistered, lightAttackConfirmed, lightAttackQueued, skillCastTime, activeBarIndex}
+	
+	-- analysis
+	for i=1,#combos do
+		local combo = combos[i]
+		if combo[8] == activeBarIndex then
+			if combo[3] < 2500 then
+				table.insert(delays[combo[1]], combo[3])
+			end
+			if not combo[4] or not combo[5] then
+				missedLightAttacks[combo[1]] = missedLightAttacks[combo[1]] + 1
+			end
+		end
+		
+		if combos[i+1] ~= nil and combos[i+1][8] == activeBarIndex and (not combo[4] or not combo[5]) then
+			missedLightAttacksAfterSkill[combos[i+1][1]] = missedLightAttacksAfterSkill[combos[i+1][1]] + 1
+		end
+			
+	end
+	
+	-- action bar
 	for i = 1, WeaveDelays.numSlots do
 	
-		local v_top2   = WeaveDelays.log.getUptime(activeBarIndex, WeaveDelays.slotOffset+i, historySize)
-		local v_top, n_top = WeaveDelays.log.getMeanDelaySinceLastLightAttack(activeBarIndex, WeaveDelays.slotOffset+i, historySize)
-		local v_bottom, n_bottom = WeaveDelays.log.getMeanDelaySinceLastSkill(activeBarIndex, WeaveDelays.slotOffset+i, historySize)
-
-		local v_total = v_top + v_bottom
-		local n_total = n_top + n_bottom
-
-		local s_top2   = WeaveDelays.FormatTimePercent(v_top2)
-		local s_bottom = WeaveDelays.FormatTimeMilliseconds(WeaveDelays.ClipRange(v_top, WeaveDelays.displayTimeMin, WeaveDelays.displayTimeMax))
-		local s_top    = WeaveDelays.FormatTimeMilliseconds(WeaveDelays.ClipRange(v_total, WeaveDelays.displayTimeMin, WeaveDelays.displayTimeMax))
+		local uptime = WeaveDelays.log.getUptime(activeBarIndex, WeaveDelays.slotOffset+i, historySize)
+		WeaveDelays.SetColorR(WeaveDelays.slotTopBar2[i], uptime)
+		WeaveDelays.slotTop2LeftLabel[i]:SetText(WeaveDelays.FormatTimePercent(uptime))
 		
-		WeaveDelays.slotTop2LeftLabel[i]:SetText(s_top2)
+		local meanDelay, n_total = WeaveDelays.log.getMean(delays[i], #delays[i])
+		local meanDelayFormatted = WeaveDelays.FormatTimeMilliseconds(WeaveDelays.ClipRange(meanDelay, WeaveDelays.displayTimeMin, WeaveDelays.displayTimeMax))
+		WeaveDelays.slotTopLeftLabel[i]:SetText(meanDelayFormatted)
 		
-		WeaveDelays.slotTopLeftLabel[i]:SetText(s_top)
-		WeaveDelays.slotBottomLeftLabel[i]:SetText(s_bottom)
+		local missedLightAttacksFormatted = tostring(missedLightAttacks[i])
+		WeaveDelays.slotTopRightLabel[i]:SetText(missedLightAttacksFormatted)
 		
-		WeaveDelays.SetColorR(WeaveDelays.slotTopBar2[i], v_top2)
+		local missedLightAttacksAfterSkillFormatted = tostring(missedLightAttacksAfterSkill[i])
+		WeaveDelays.slotBottomRightLabel[i]:SetText(missedLightAttacksAfterSkillFormatted)
 		
-		WeaveDelays.SetColor(WeaveDelays.slotTopBar[i], v_total, n_total)
-		WeaveDelays.SetColor(WeaveDelays.slotBottomBar[i], v_total, n_total)
+		WeaveDelays.slotBottomLeftLabel[i]:SetText("")
 		
-		WeaveDelays.slotTopRightLabel[i]:SetText(""..WeaveDelays.log.getMissedLightAttacksBefore(activeBarIndex, WeaveDelays.slotOffset+i, historySize))
-		WeaveDelays.slotBottomRightLabel[i]:SetText(""..WeaveDelays.log.getMissedLightAttacksAfter(activeBarIndex, WeaveDelays.slotOffset+i, historySize))
+		WeaveDelays.SetColor(WeaveDelays.slotTopBar[i], meanDelay, n_total)
+		WeaveDelays.SetColor(WeaveDelays.slotBottomBar[i], meanDelay, n_total)
 
 	end
 end
 
-function WeaveDelays.UpdateReport()
-	local parentControl = WINDOW_MANAGER:GetControlByName('WEAVEDELAYSUIBG')
-	for i = 0,5 do
-		if WeaveDelays.frontBarSkills[i+1] ~= nil then
-			local ctl = WINDOW_MANAGER:GetControlByName("WEAVEDELAYSUI_GRID_TOP_HEADER_"..(i+1))
-			ctl:SetTexture(WeaveDelays.GetTextureFromAbilityId(WeaveDelays.frontBarSkills[i+1]))
-		end
-	end
-	for i = 6,11 do
-		if WeaveDelays.backBarSkills[i-5] ~= nil then
-			local ctl = WINDOW_MANAGER:GetControlByName("WEAVEDELAYSUI_GRID_TOP_HEADER_"..(i+1))
-			ctl:SetTexture(WeaveDelays.GetTextureFromAbilityId(WeaveDelays.backBarSkills[i-5]))
-		end
-	end
-	for i = 0,5 do
-		if WeaveDelays.frontBarSkills[i+1] ~= nil then
-			local ctl = WINDOW_MANAGER:GetControlByName("WEAVEDELAYSUI_GRID_LEFT_HEADER_"..(i+1))
-			ctl:SetTexture(WeaveDelays.GetTextureFromAbilityId(WeaveDelays.frontBarSkills[i+1]))
-		end
-	end
-	for i = 6,11 do
-		if WeaveDelays.backBarSkills[i-5] ~= nil then
-			local ctl = WINDOW_MANAGER:GetControlByName("WEAVEDELAYSUI_GRID_LEFT_HEADER_"..(i+1))
-			ctl:SetTexture(WeaveDelays.GetTextureFromAbilityId(WeaveDelays.backBarSkills[i-5]))
-		end
+function WeaveDelays.UpdateDelayBar()
+	-- delay bar
+	local bg = WINDOW_MANAGER:GetControlByName('WEAVEDELAYSBARBG')
+	local n  = WeaveDelays.savedVariables.numDelayBarSlots * WeaveDelays.savedVariables.numDelayBarRows
+	
+	local lastCombos 
+	
+	if historySize == n then
+		lastCombos = combos
+	else
+		lastCombos = WeaveDelays.log.getLastCombos(n)
 	end
 	
-	local nMax = 0
+	local gameTime = GetGameTimeMilliseconds() 
+
 	
-	for i = 1,12 do
-		for j = 1,12 do
-			local lbl = WINDOW_MANAGER:GetControlByName("WEAVEDELAYSUI_LABEL_"..i.."_"..j)
-			local ctl = WINDOW_MANAGER:GetControlByName("WEAVEDELAYSUI_GRID_"..i.."_"..j)
+	for i = 1, n do
+		local barBox     = WINDOW_MANAGER:GetControlByName('WEAVEDELAYSBARL'..i)
+		local barMarker  = WINDOW_MANAGER:GetControlByName('WEAVEDELAYSBARB'..i)
+		local barPicture = WINDOW_MANAGER:GetControlByName('WEAVEDELAYSBARS'..i)
+		local barQueueFlag = WINDOW_MANAGER:GetControlByName('WEAVEDELAYSBARQ'..i)
+		
+		if lastCombos[n+1-i] ~= nil then
+			local combo             = lastCombos[n+1-i]
+			local lightAttackMissed = not (combo[4] and combo[5])
+			local t                 = combo[3]
 			
-			if WeaveDelays.displayMode == 1 then
-				local delta = WeaveDelays.log.getDelayS1_x_S2(j,i)
-				if delta ~= nil then
-					lbl:SetText(WeaveDelays.FormatTimeMilliseconds(delta))
-					WeaveDelays.SetColor(ctl, delta, 1)
+			if combo[7]~= nil and gameTime - combo[7] > 100 then
+				if not lightAttackMissed then
+					barQueueFlag:SetText("")
+				elseif not combo[4] then
+					barQueueFlag:SetText("M")
+				elseif combo[6] then
+					barQueueFlag:SetText("Q")
 				else
-					lbl:SetText("")
-					WeaveDelays.SetColor(ctl, 0, -1)
+					barQueueFlag:SetText("X")
 				end
-			elseif WeaveDelays.displayMode == 2 then
-				local delta = WeaveDelays.log.getTransitionsS1_x_S2(j,i)
-				if delta ~= nil and delta > 0  then
-					lbl:SetText(WeaveDelays.FormatTimeMilliseconds(delta))
-					WeaveDelays.SetColorN(ctl, delta)
-				else
-					lbl:SetText("")
-					WeaveDelays.SetColorN(ctl, -1)
-				end
-			elseif WeaveDelays.displayMode == 3 then
-				local delta = WeaveDelays.log.getMissingLightAttacksS1_x_S2(j,i)
-				if delta ~= nil and delta > -1  then
-					lbl:SetText(WeaveDelays.FormatTimeMilliseconds(delta))
-					WeaveDelays.SetColorN(ctl, delta)
-				else
-					lbl:SetText("")
-					WeaveDelays.SetColorN(ctl, -1)
-				end
-			elseif WeaveDelays.displayMode == 4 then
-			
-				local m = WeaveDelays.log.getMissingLightAttacksS1_x_S2(j,i)
-				local c = WeaveDelays.log.getTransitionsS1_x_S2(j,i)
-				local r = 0
-				if c > 0 then
-					r = math.floor(100*m/c)
-				end
-				if r ~= nil and c > 0 and r > 0 and r < 101  then
-					lbl:SetText(WeaveDelays.FormatTimeMilliseconds(r))
-					WeaveDelays.SetColorN(ctl, r)
-				else
-					lbl:SetText("")
-					WeaveDelays.SetColorN(ctl, -1)
-				end
-			elseif WeaveDelays.displayMode == 5 then
-				local delta = WeaveDelays.log.getDelayS1_x_S2(j,i)
-				local n     = WeaveDelays.log.getTransitionsS1_x_S2(j,i)
-				
-				if delta ~= nil and delta > 0 and n ~= nil then
-					local totalTime = delta * n
-					lbl:SetText(WeaveDelays.FormatTimeSeconds(totalTime))
-					WeaveDelays.SetColorN(ctl, totalTime/1000)
-				else
-					lbl:SetText("")
-					WeaveDelays.SetColorN(ctl, -1)
-				end
-				
 			else
-				lbl:SetText("")
-				lbl:SetText("")
-				WeaveDelays.SetColor(ctl, 0, -1)
+				barQueueFlag:SetText("")
+			end
+			
+			
+			if lightAttackMissed ~= nil and lightAttackMissed then
+				barMarker:SetColor(1.0,1.0,1.0,0.0)
+				t = 1000
+			else
+				barMarker:SetColor(1.0,1.0,1.0,1.0)
+			end
+			
+			if t < 1 then
+				t = 1
+			end
+			if t > 950 then
+				t = 950
+			end
+			
+			if combo[7]~= nil and gameTime - combo[7] > 100 then
+				WeaveDelays.SetColor(barBox, t, 1)
+			else
+				barBox:SetColor(1.0,1.0,1.0,0.1)
+			end
+			
+			if t > 450 then
+				t = 450
+			end
+			barMarker:SetAnchor(TOPLEFT, barBox, TOPLEFT, math.floor(t/10.0), -4)
+			
+			if WeaveDelays.savedVariables.showSkillsInDelayBar then
+				local boundId  = combo[2]
+				barPicture:SetColor(1.0,1.0,1.0,1.0)
+				barPicture:SetTexture(WeaveDelays.GetTextureFromAbilityId(boundId))
+			end
+		else
+			barMarker:SetColor(1.0,1.0,1.0,0.2)
+			barBox:SetColor(1.0,1.0,1.0,0.2)
+			if WeaveDelays.savedVariables.showSkillsInDelayBar then
+				barPicture:SetTexture(nil)
+				barPicture:SetColor(1.0,1.0,1.0,0.1)
+			end
+			barQueueFlag:SetText("")
+		end
+	end
+end
+
+function WeaveDelays.UpdateTrackedAbilities()
+
+	-- tracked ability bar
+	local gameTime = GetGameTimeMilliseconds() 
+	local bg = WINDOW_MANAGER:GetControlByName('WEAVEDELAYSBAR2BG')
+	
+	local abilityIndex = 1
+	local abilitiesSortedByPriority = {}
+	local abilitiesTimeoutPassed = {}
+	for k,v in pairs(WeaveDelays.trackedAbilities) do
+		table.insert(abilitiesSortedByPriority, {k,v[1]})
+		table.insert(abilitiesSortedByPriority, {k,v[1]+v[2]})
+	end
+	table.sort(abilitiesSortedByPriority, function(a,b) return a[2] < b[2] end)
+	
+	for i,p in ipairs(abilitiesSortedByPriority) do
+		abilityId, abilityTimeout = unpack(p)
+		local abilityIcon  = WINDOW_MANAGER:GetControlByName('WEAVEDELAYSBAR2S'..abilityIndex)
+		local abilityTimer = WINDOW_MANAGER:GetControlByName('WEAVEDELAYSBAR2T'..abilityIndex)
+		
+		local timeToCast = abilityTimeout-gameTime
+		local t0 = timeToCast
+		while t0 > 1000 do
+			abilityIcon:SetTexture(nil)
+			abilityIcon:SetColor(1.0,1.0,1.0,0.2)
+			abilityTimer:SetColor(1.0,1.0,1.0,1.0)
+			abilityTimer:SetText("S")
+			abilityIndex = abilityIndex + 1
+			if abilityIndex > 10 then 
+				break
+			end
+		    abilityIcon  = WINDOW_MANAGER:GetControlByName('WEAVEDELAYSBAR2S'..abilityIndex)
+		    abilityTimer = WINDOW_MANAGER:GetControlByName('WEAVEDELAYSBAR2T'..abilityIndex)
+			t0 = t0 - 1000
+		end
+		if abilityIndex > 10 then 
+			break
+		end
+		if timeToCast > 0 or abilitiesTimeoutPassed[abilityId] == nil then
+			abilityIcon:SetColor(1.0,1.0,1.0,1.0)
+			abilityIcon:SetTexture(WeaveDelays.GetTextureFromAbilityId(abilityId))
+			abilityTimer:SetText(""..math.floor((timeToCast)*0.01)*0.1)
+			if timeToCast < 0 then
+				abilityTimer:SetColor(1.0,0.0,0.0,1.0)
+				abilitiesTimeoutPassed[abilityId] = true
+			else
+				abilityTimer:SetColor(1.0,1.0,1.0,1.0)
+			end
+			abilityIndex = abilityIndex + 1
+		end
+		if abilityIndex > 10 then 
+			break
+		end
+	end
+	while abilityIndex < 10 do
+		local abilityIcon  = WINDOW_MANAGER:GetControlByName('WEAVEDELAYSBAR2S'..abilityIndex)
+		local abilityTimer = WINDOW_MANAGER:GetControlByName('WEAVEDELAYSBAR2T'..abilityIndex)
+		abilityIcon:SetTexture(nil)
+		abilityIcon:SetColor(1.0,1.0,1.0,0.1)
+		abilityTimer:SetText("")
+		abilityIndex = abilityIndex + 1
+	end
+end
+
+-- ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+--                 combat events
+-- ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+function WeaveDelays.OnCombatEvent(eventCode,  result, isError,  abilityName,  abilityGraphic,  abilityActionSlotType, sourceName, sourceType, targetName, targetType, hitValue,  powerType,  damageType, log, sourceUnitId, targetUnitId, abilityId, overflow)
+
+	if abilityActionSlotType == ACTION_SLOT_TYPE_LIGHT_ATTACK and sourceName == WeaveDelays.playerName then
+		if result == ACTION_RESULT_DAMAGE or result == ACTION_RESULT_CRITICAL_DAMAGE or results == ACTION_RESULT_HEAL or result == ACTION_RESULT_CRITICAL_HEAL then
+			WeaveDelays.log.confirmLightAttack()
+			WeaveDelays.Update()
+		elseif result == ACTION_RESULT_QUEUED then
+			WeaveDelays.log.flagLightAttackQueued()
+		end
+	end
+
+end
+
+function WeaveDelays.EventEffectChanged(eventCode, changeType, effectSlot, effectName, unitTag, beginTime, endTime, stackCount, iconName, buffType, effectType, abilityType, statusEffectType, unitName, unitId, abilityId, sourceType)
+	if sourceType == COMBAT_UNIT_TYPE_PLAYER then
+		if changeType == EFFECT_RESULT_GAINED or changeType == EFFECT_RESULT_FADED or changeType == EFFECT_RESULT_UPDATED then
+			local matched = false
+			for i =1,#WeaveDelays.frontBarSkills do
+				if WeaveDelays.frontBarSkills[i] == abilityId then
+					matched = true
+					break
+				end
+			end
+			for i =1,#WeaveDelays.backBarSkills do
+				if WeaveDelays.backBarSkills[i] == abilityId then
+					matched = true
+					break
+				end
+			end
+			if matched and (endTime - beginTime) > 0 then	
+				WeaveDelays.log.updateAbilityDuration(abilityId, 1000 * (endTime - beginTime))
+				--d("upd time: effectName="..effectName .. "=> ".. abilityId.." t=".. 1000 * (endTime - beginTime))
+				
 			end
 		end
 	end
-			
-	local lbl = WINDOW_MANAGER:GetControlByName("WEAVEDELAYSUI_HEADER_LABEL")
-	local statusLbl = WINDOW_MANAGER:GetControlByName("WEAVEDELAYSUI_STATUS_LABEL")
-	if WeaveDelays.displayMode == 1 then
-		lbl:SetText("t")
-		statusLbl:SetText("average time lost between casts of skills x and y")
-	elseif WeaveDelays.displayMode == 2 then
-		lbl:SetText("C")
-		statusLbl:SetText("number of transitions skill x - LA - skill y")
-	elseif WeaveDelays.displayMode == 3 then
-		lbl:SetText("M")
-		statusLbl:SetText("number of transitions skill x - skill y (no LA)")
-	elseif WeaveDelays.displayMode == 4 then
-		lbl:SetText("R")
-		statusLbl:SetText("fraction of missed light attacks between skill x and skill y")
-	elseif WeaveDelays.displayMode == 5 then
-		lbl:SetText("T")
-		statusLbl:SetText("total time lost between casts of skills x and y")
-	end
-	
-	
 end
 
 function WeaveDelays.playerActionSlotAbilityUsed(e, slotId)
+	WeaveDelays.log.slotUsed(slotId)
 	if WeaveDelays.inCombat then
-		WeaveDelays.log.slotUsed(slotId)
 		WeaveDelays.Update()
+	end
+	local abilityId = GetSlotBoundId(slotId)
+	if WeaveDelays.effectiveAbilityDurations[abilityId] ~= nil then
+		WeaveDelays.trackedAbilities[abilityId] = {GetGameTimeMilliseconds() + WeaveDelays.effectiveAbilityDurations[abilityId], WeaveDelays.effectiveAbilityDurations[abilityId]}
 	end
 end
 
 function  WeaveDelays.OnWeaponSwap(_, activeWeaponPair, locked)
 	WeaveDelays.log.weaponSwap(activeWeaponPair)
-	WeaveDelays.Update()
+	if WeaveDelays.inCombat then
+		WeaveDelays.UpdateActionBar()
+		WeaveDelays.UpdateDelayBar()
+	else
+		WeaveDelays.UpdateActionBar(true)
+	end
 	if activeWeaponPair == 1 and #WeaveDelays.frontBarSkills < 1 then
 		for i=0,5 do
 			table.insert(WeaveDelays.frontBarSkills, GetSlotBoundId(3+i))
@@ -385,15 +619,22 @@ end
 function WeaveDelays.OnPlayerCombatState(event, inCombat)
 	if inCombat and not WeaveDelays.inCombat then
 		WeaveDelays.inCombat = inCombat
-		WeaveDelays.Reset()
-		WeaveDelays.Update()
+		WeaveDelays.enterCombat()
 	elseif not inCombat and WeaveDelays.inCombat then
+		WeaveDelays.Update(true)
 		WeaveDelays.inCombat = inCombat
-		WeaveDelays.Update()
-		WeaveDelays.log.analyze()
-		WeaveDelays.UpdateReport()
-		
+		WeaveDelays.leaveCombat()
 	end
+end
+
+function WeaveDelays.enterCombat()
+	WeaveDelays.log.startCombat()
+	WeaveDelays.Update()
+end
+
+function WeaveDelays.leaveCombat()
+	WeaveDelays.log.endCombat()
+	WeaveDelays.trackedAbilities = {}
 end
 
 function WeaveDelays.GetAbilityIndexFromAbilityId(abilityId)
@@ -407,21 +648,34 @@ function WeaveDelays.GetAbilityIndexFromAbilityId(abilityId)
     end
 end
 
+
 function WeaveDelays.GetTextureFromAbilityId(abilityId)
-    local hasProgression, progressionIndex = GetAbilityProgressionXPInfoFromAbilityId(abilityId)
-    if hasProgression then
-		local _, morph, rank = GetAbilityProgressionInfo(progressionIndex)
-        local name, texture, abilityIndex = GetAbilityProgressionAbilityInfo(progressionIndex, morph, rank)
-		return texture
+	if WeaveDelays.textureCache[abilityId] ~= nil then
+		return WeaveDelays.textureCache[abilityId]
 	else
-	    return 0
-    end
+		local hasProgression, progressionIndex = GetAbilityProgressionXPInfoFromAbilityId(abilityId)
+		if hasProgression then
+			local _, morph, rank = GetAbilityProgressionInfo(progressionIndex)
+			local name, texture, abilityIndex = GetAbilityProgressionAbilityInfo(progressionIndex, morph, rank)
+			WeaveDelays.textureCache[abilityId] = texture
+			return texture
+		else
+			return 0
+		end
+	end
 end
+
+
+-- ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+--                 init
+-- ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 function WeaveDelays:Initialize()
 	-- Saved Vars
-	WeaveDelays.savedVariables = ZO_SavedVars:New("WeaveDelaysSettings", 1, nil, WeaveDelays.DefaultSavedVars)
-
+	WeaveDelays.savedVariables = ZO_SavedVars:New("WeaveDelaysVars", 1, nil, WeaveDelays.DefaultSavedVars)
+	if WeaveDelays.savedVariables.numDelayBarSlots == nil or WeaveDelays.savedVariables.numDelayBarSlots < 1 then
+		WeaveDelays.savedVariables.numDelayBarSlots = 1
+	end
 	WeaveDelays.log = WeaveDelayLog.new()
 	WeaveDelays.log.reset()
 	
@@ -431,6 +685,13 @@ function WeaveDelays:Initialize()
 	EVENT_MANAGER:RegisterForEvent(WeaveDelays.name.."PlayerCombatState", EVENT_PLAYER_COMBAT_STATE, WeaveDelays.OnPlayerCombatState)
 	EVENT_MANAGER:RegisterForEvent(WeaveDelays.name.."EventEffectChanged", EVENT_EFFECT_CHANGED, WeaveDelays.EventEffectChanged)
 
+	EVENT_MANAGER:RegisterForEvent(WeaveDelays.name, EVENT_COMBAT_EVENT, WeaveDelays.OnCombatEvent)
+	
+	EVENT_MANAGER:RegisterForEvent(WeaveDelays.name.."Hide", EVENT_RETICLE_HIDDEN_UPDATE, WeaveDelays.OnReticleHiddenUpdate)
+
+
+	EVENT_MANAGER:RegisterForUpdate("WeaveDelaysUiLoop", 200, WeaveDelays.UiLoop)
+		
 	-- Controls
 	WeaveDelays.slotTopBar = {}
 	WeaveDelays.slotTopBar2 = {}
@@ -482,7 +743,7 @@ function WeaveDelays:Initialize()
 	lt1:SetText("delay")
 	lt1:SetHorizontalAlignment(TEXT_ALIGN_RIGHT)
 	lt1:SetAnchor(BOTTOMLEFT,slot,TOPLEFT,-1.1*width,topBarOffsetHeight+WeaveDelays.controlTopLabelOffsetY+2)
-
+	
 	local lb1 = WINDOW_MANAGER:CreateControl(nil, slot, CT_LABEL)
 	lb1:SetDimensions(width, height)
 	lb1:SetFont(WeaveDelays.controlLabelFont)
@@ -572,61 +833,7 @@ function WeaveDelays:Initialize()
 		
 	end
 	
-	local parentControl = WINDOW_MANAGER:GetControlByName('WEAVEDELAYSUIBG')
-	for i = 0,12 do		
-		local ctl = WINDOW_MANAGER:CreateControl("WEAVEDELAYSUI_GRID_TOP_HEADER_"..i, parentControl, CT_TEXTURE)
-		ctl:SetDimensions(32, 32)
-		ctl:SetDrawTier(2)
-		ctl:SetDrawLayer(5)
-		ctl:SetAlpha(0.8)
-		ctl:SetAnchor(TOPLEFT, parentControl, TOPLEFT, 5+i*35, 5)
-	end
-	for i = 1,12 do		
-		local ctl = WINDOW_MANAGER:CreateControl("WEAVEDELAYSUI_GRID_LEFT_HEADER_"..i, parentControl, CT_TEXTURE)
-		ctl:SetDimensions(32, 32)
-		ctl:SetDrawTier(2)
-		ctl:SetDrawLayer(5)
-		ctl:SetAlpha(0.8)
-		ctl:SetAnchor(TOPLEFT, parentControl, TOPLEFT, 5, 5+i*35)
-	end
-	
-	local lbl = WINDOW_MANAGER:CreateControl("WEAVEDELAYSUI_HEADER_LABEL", parentControl, CT_LABEL)
-	lbl:SetFont(WeaveDelays.controlLabelFont)
-	lbl:SetColor(0.2,0.2,0.2,0.8)
-	lbl:SetDimensions(32, 32)
-	lbl:SetDrawTier(2)
-	lbl:SetDrawLayer(6)
-	lbl:SetAnchor(TOPLEFT, parentControl, TOPLEFT, 10, 10)
-			
-	for i = 1,12 do	
-		for j = 1,12 do
-			local ctl = WINDOW_MANAGER:CreateControl("WEAVEDELAYSUI_GRID_"..i.."_"..j, parentControl, CT_TEXTURE)
-			ctl:SetDimensions(32, 32)
-			ctl:SetDrawTier(2)
-			ctl:SetDrawLayer(5)
-			ctl:SetColor(0.8,0.8,0.8,0.4)
-			ctl:SetAnchor(TOPLEFT, parentControl, TOPLEFT, 5+j*35, 5+i*35)
-			local lbl = WINDOW_MANAGER:CreateControl("WEAVEDELAYSUI_LABEL_"..i.."_"..j, parentControl, CT_LABEL)
-			lbl:SetFont(WeaveDelays.controlLabelFont)
-			lbl:SetDimensions(32, 32)
-			lbl:SetDrawTier(2)
-			lbl:SetDrawLayer(6)
-			lbl:SetAnchor(TOPLEFT, parentControl, TOPLEFT, 10+j*35, 10+i*35)
-		end
-	end
-	
-	local statusLbl = WINDOW_MANAGER:CreateControl("WEAVEDELAYSUI_STATUS_LABEL", parentControl, CT_LABEL)
-	statusLbl:SetFont("ZoFontGameMedium")
-	statusLbl:SetColor(0.9,0.9,0.9,0.9)
-	statusLbl:SetDimensions(450, 32)
-	statusLbl:SetDrawTier(2)
-	statusLbl:SetDrawLayer(6)
-	statusLbl:SetAnchor(TOPLEFT, parentControl, TOPLEFT, 10, 465)
-	
-	statusLbl:SetText(WeaveDelays.name.." v"..WeaveDelays.version)
-	
 	ZO_CreateStringId("SI_BINDING_NAME_WD_TOGGLE", "Toggle WeaveDelays window")
-	ZO_CreateStringId("SI_BINDING_NAME_WD_TOGGLE_MODE", "Toggle WeaveDelays mode")
 	
 	if not WeaveDelays.banditsFound and WeaveDelays.repositionHealthBar then
 		local _, point, relativeTo, relativePoint, offsetX, offsetY = ZO_PlayerAttributeHealth:GetAnchor(0)
@@ -644,6 +851,247 @@ function WeaveDelays:Initialize()
 		ZO_PlayerAttributeHealth:SetAnchor(point, relativeTo, relativePoint, offsetX, offsetY)
 	end
 	
+	--- delay bar
+	local bg = WINDOW_MANAGER:GetControlByName('WEAVEDELAYSBARBG')
+	local n = WeaveDelays.savedVariables.numDelayBarSlots
+	local r = WeaveDelays.savedVariables.numDelayBarRows
+	local w = 50
+	local m = 2
+	local h = 22
+	
+	if WeaveDelays.savedVariables.showSkillsInDelayBar then
+		h = h + 55
+	end
+	
+	if WeaveDelays.savedVariables.showDelayBar then
+		WeaveDelays.restoreDelayBarPosition()
+		WEAVEDELAYSBAR:SetHidden(False)
+		WEAVEDELAYSBAR:SetDimensions((w+m)*n+2, h*r)
+		bg:SetDimensions((w+m)*n+2, h*r)
+		
+		local ctl,ctl2,ctl3,ctl4
+		local k=1
+		for j=1, r do
+			for i=1, n do
+				ctl = WINDOW_MANAGER:CreateControl("WEAVEDELAYSBARL"..k, bg, CT_TEXTURE)
+				ctl:SetDimensions(w, 14)
+				ctl:SetAnchor(TOPLEFT, bg, TOPLEFT, (i-1)*(w+m)+1, 4+(j-1)*h)
+				ctl:SetColor(1.0,1.0,1.0,0.2)
+				ctl2 = WINDOW_MANAGER:CreateControl("WEAVEDELAYSBARB"..k, bg, CT_TEXTURE)
+				ctl2:SetDimensions(5, 20)
+				ctl2:SetAnchor(TOPLEFT, ctl, TOPLEFT, 0, -4)
+				ctl2:SetColor(1.0,1.0,1.0,0.3)
+				if WeaveDelays.savedVariables.showSkillsInDelayBar then
+					ctl3 = WINDOW_MANAGER:CreateControl("WEAVEDELAYSBARS"..k, bg, CT_TEXTURE)
+					ctl3:SetDimensions(50, 50)
+					ctl3:SetAnchor(TOPLEFT, bg, TOPLEFT, (i-1)*(w+m)+1, 20+(j-1)*h)
+					ctl3:SetColor(1.0,1.0,1.0,0.1)
+				end
+				ctl4 = WINDOW_MANAGER:CreateControl("WEAVEDELAYSBARQ"..k, bg, CT_LABEL)
+				ctl4:SetFont(WeaveDelays.controlLabelFont)
+				ctl4:SetDimensions(16, 16)
+				ctl4:SetAnchor(TOPLEFT, bg, TOPLEFT, (i-1)*(w+m)+35, 3+(j-1)*h)
+				k = k+1
+			end
+		end
+	end
+	
+	--- ability recast bar 
+	
+	if WeaveDelays.savedVariables.showAbilityRecastBar then
+		WeaveDelays.restoreDelayBar2Position()
+		WEAVEDELAYSBAR2:SetHidden(False)
+		
+		local bg = WINDOW_MANAGER:GetControlByName('WEAVEDELAYSBAR2BG')
+		local n = 10
+		for i=1, n do
+			ctl3 = WINDOW_MANAGER:CreateControl("WEAVEDELAYSBAR2S"..i, bg, CT_TEXTURE)
+			ctl3:SetDimensions(50, 50)
+			ctl3:SetAnchor(TOPLEFT, bg, TOPLEFT, (i-1)*(w+m)+1, 5)
+			ctl3:SetColor(1.0,1.0,1.0,0.1)
+			ctl4 = WINDOW_MANAGER:CreateControl("WEAVEDELAYSBAR2T"..i, bg, CT_LABEL)
+			ctl4:SetFont("ZoFontGameLargeBoldShadow")
+			ctl4:SetDimensions(24, 24)
+			ctl4:SetAnchor(TOPLEFT, bg, TOPLEFT, (i-1)*(w+m)+16, 17)
+		end
+	end
+
+	--- menu
+	WeaveDelays.InitializeMenu()
+					
+end
+
+
+function WeaveDelays.InitializeMenu()
+
+    local panelData = {
+        type = "panel",
+        name = WeaveDelays.name,
+        displayName = WeaveDelays.name,
+        author = "Psiioniic",
+        version = tostring(WeaveDelays.version),
+        registerForRefresh = true,
+        registerForDefaults = true,
+    }
+    LibAddonMenu2:RegisterAddonPanel(WeaveDelays.name, panelData)
+	
+	local optionsTable = {
+	{
+		type = "header",
+		name = "WeaveDelays",
+		width = "full",
+	},
+	{
+		type = "checkbox",
+		name = "Unlock UI",
+		tooltip = "",
+		getFunc = function()
+			return WeaveDelays.savedVariables.unlockUI
+		end,
+		setFunc = function(value)
+			WeaveDelays.savedVariables.unlockUI = value
+		end,
+		width = "full",
+		default = false,
+	},
+	{
+		type = "checkbox",
+		name = "Show action bar addon",
+		tooltip = "",
+		getFunc = function()
+			return WeaveDelays.savedVariables.showActionBarAddon
+		end,
+		setFunc = function(value)
+			WeaveDelays.savedVariables.showActionBarAddon = value
+		end,
+		width = "full",
+		default = false,
+		requiresReload = true,
+	},
+	{
+		type = "checkbox",
+		name = "Show delay bar",
+		tooltip = "",
+		getFunc = function()
+			return WeaveDelays.savedVariables.showDelayBar
+		end,
+		setFunc = function(value)
+			WeaveDelays.savedVariables.showDelayBar = value
+		end,
+		width = "full",
+		default = false,
+		requiresReload = true,
+	},
+	{
+		type = "slider",
+		name = "Delay bar slots",
+		tooltip = "",
+		min = 1,
+		max = 40,
+		step = 1,
+		disabled = function()
+			return (not WeaveDelays.savedVariables.showDelayBar)
+		end,
+		getFunc = function()
+			return WeaveDelays.savedVariables.numDelayBarSlots
+		end,
+		setFunc = function(value)
+			WeaveDelays.savedVariables.numDelayBarSlots = tonumber(value)
+		end,
+		width = "full",
+		default = 5,
+		requiresReload = true,
+	},
+	{
+		type = "slider",
+		name = "Delay bar rows",
+		tooltip = "",
+		min = 1,
+		max = 20,
+		step = 1,
+		disabled = function()
+			return (not WeaveDelays.savedVariables.showDelayBar)
+		end,
+		getFunc = function()
+			return WeaveDelays.savedVariables.numDelayBarRows
+		end,
+		setFunc = function(value)
+			WeaveDelays.savedVariables.numDelayBarRows = tonumber(value)
+		end,
+		width = "full",
+		default = 1,
+		requiresReload = true,
+	},
+	--showDelayBarOnlyInCombat
+	{
+		type = "checkbox",
+		name = "Show delay bar only in combat",
+		tooltip = "",
+		disabled = function()
+			return (not WeaveDelays.savedVariables.showDelayBar)
+		end,
+		getFunc = function()
+			return WeaveDelays.savedVariables.showDelayBarOnlyInCombat
+		end,
+		setFunc = function(value)
+			WeaveDelays.savedVariables.showDelayBarOnlyInCombat = value
+		end,
+		width = "full",
+		default = false,
+	},
+	{
+		type = "slider",
+		name = "Show delay bar for number of seconds after combat",
+		tooltip = "",
+		min = 1,
+		max = 60,
+		step = 1,
+		disabled = function()
+			return (not WeaveDelays.savedVariables.showDelayBarOnlyInCombat)
+		end,
+		getFunc = function()
+			return WeaveDelays.savedVariables.showDelayBarAfterCombat
+		end,
+		setFunc = function(value)
+			WeaveDelays.savedVariables.showDelayBarAfterCombat = tonumber(value)
+		end,
+		width = "full",
+		default = 10,
+	},
+	{
+		type = "checkbox",
+		name = "Show skills in delay bar",
+		tooltip = "",
+		disabled = function()
+			return (not WeaveDelays.savedVariables.showDelayBar)
+		end,
+		getFunc = function()
+			return WeaveDelays.savedVariables.showSkillsInDelayBar
+		end,
+		setFunc = function(value)
+			WeaveDelays.savedVariables.showSkillsInDelayBar = value
+		end,
+		width = "full",
+		default = false,
+		requiresReload = true,
+	},
+	{
+		type = "checkbox",
+		name = "Show ability recast bar",
+		tooltip = "",
+		getFunc = function()
+			return WeaveDelays.savedVariables.showAbilityRecastBar
+		end,
+		setFunc = function(value)
+			WeaveDelays.savedVariables.showAbilityRecastBar = value
+		end,
+		width = "full",
+		default = false,
+		requiresReload = true,
+	},
+	}
+	LibAddonMenu2:RegisterOptionControls(WeaveDelays.name, optionsTable)
+
 end
 
 function WeaveDelays.OnAddOnLoaded(eventCode, addonName)
@@ -661,30 +1109,6 @@ function WeaveDelays.OnAddOnLoaded(eventCode, addonName)
 	end
 end
 
-function WeaveDelays.EventEffectChanged(eventCode, changeType, effectSlot, effectName, unitTag, beginTime, endTime, stackCount, iconName, buffType, effectType, abilityType, statusEffectType, unitName, unitId, abilityId, sourceType)
-	if sourceType == COMBAT_UNIT_TYPE_PLAYER then
-		if changeType == EFFECT_RESULT_GAINED or changeType == EFFECT_RESULT_FADED or changeType == EFFECT_RESULT_UPDATED then
-			local matched = false
-			for i =1,#WeaveDelays.frontBarSkills do
-				if WeaveDelays.frontBarSkills[i] == abilityId then
-					matched = true
-					break
-				end
-			end
-			for i =1,#WeaveDelays.backBarSkills do
-				if WeaveDelays.backBarSkills[i] == abilityId then
-					matched = true
-					break
-				end
-			end
-			if matched and (endTime - beginTime) > 0 then	
-				WeaveDelays.log.updateAbilityDuration(abilityId, 1000 * (endTime - beginTime))
-				--d("upd time: effectName="..effectName .. "=> ".. abilityId.." t=".. 1000 * (endTime - beginTime))
-				
-			end
-		end
-	end
-end
 
 
 --function WeaveDelays.MoveUI()
@@ -724,9 +1148,10 @@ SLASH_COMMANDS[WeaveDelays.slash] = function (cmd)
 			d("----------")
 		elseif commands[1] == "update" then
 			WeaveDelays.Update()
-			WeaveDelays.UpdateReport()
 		end
 	end
 end
 
 EVENT_MANAGER:RegisterForEvent(WeaveDelays.name, EVENT_ADD_ON_LOADED, WeaveDelays.OnAddOnLoaded)
+
+
