@@ -452,5 +452,21 @@ function WeaveDelayLog.new()
 		return activeBarIndex
 	end
 	
+	function self.getActiveWeaponPair()
+		if skillBarIndex == nil then
+			return nil
+		else
+			if activeBarIndex ~= nil then
+				if not activeBarIndexReversed then
+					return 1 + activeBarIndex
+				else
+					return 2 - activeBarIndex
+				end
+			else
+				return nil
+			end
+		end
+	end
+	
 	return self
 end

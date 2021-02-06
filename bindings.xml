@@ -2,7 +2,9 @@
 	<Layer name="SI_KEYBINDINGS_LAYER_GENERAL">
 		<Category name="WeaveDelays">
 			<Action name="WD_TOGGLE">
-				<Up>WeaveDelaysInterface:ToggleWindow()</Up>
+				<Up>
+					WeaveDelays_ToggleWindow()
+				</Up>
 			</Action>
 		</Category>
 	</Layer>
