@@ -5,7 +5,7 @@ local self = WeaveDelays
 self.name                = 'WeaveDelays'
 self.slash               = "/weavedelays"
 self.version             = 0.4
-self.DefaultSavedVars    = {["delayBarOffsetX"]=400,["delayBarOffsetY"]=400,["delayBarAlpha"]=0.9,["delayBar2OffsetX"]=300,["delayBar2OffsetY"]=400,["numDelayBarSlots"]=10,["numDelayBarRows"]=1,["showDelayBar"]=true,["showAbilityRecastBar"]=false,["showSkillsInDelayBar"]=true,["showDelayBarOnlyInCombat"]=false,["showDelayBarAfterCombat"]=10,["unlockUI"]=false,["showActionBarAddon"]=true,["abilityRecastBarFontFace"]="ZoFontGamepad25",["abilityRecastBarNumSlots"]=10,["fontFaceList"]={},["actionBarFontFace"]="ZoFontGameSmall",["delayBarFontFace"]="ZoFontGameSmall",["delayBarPalette"]="greenred",["abilityDurations"]={[20779]=20000,[23213]=23000,[24328]=6000,[32673]=6000,[39053]=10000,[39073]=10000,[39095]=23000,[40058]=12000,[40094]=8000,[40079]=8000,[40382]=18000,[40457]=12000,[40465]=16000,[41958]=30000,[42028]=9000,[42038]=8000,[50079]=10000,[61500]=8000,[103706]=36000,[117850]=10000,[118008]=12000,[118726]=16000},["textLightAttackMissed"]="M",["textLightAttackDisappeared"]="X",["textLightAttackQueued"]="Q",["abilityRecastBarAlpha"]=0.9}
+self.DefaultSavedVars    = {["delayBarOffsetX"]=400,["delayBarOffsetY"]=400,["delayBarAlpha"]=0.9,["delayBar2OffsetX"]=300,["delayBar2OffsetY"]=400,["numDelayBarSlots"]=10,["numDelayBarRows"]=1,["showDelayBar"]=true,["showAbilityRecastBar"]=false,["showSkillsInDelayBar"]=true,["showDelayBarOnlyInCombat"]=false,["showDelayBarAfterCombat"]=10,["unlockUI"]=false,["showActionBarAddon"]=true,["showActionBarUptimes"]=true,["abilityRecastBarFontFace"]="ZoFontGamepad25",["abilityRecastBarNumSlots"]=10,["fontFaceList"]={},["actionBarFontFace"]="ZoFontGameSmall",["delayBarFontFace"]="ZoFontGameSmall",["delayBarPalette"]="greenred",["abilityDurations"]={[20779]=20000,[23213]=23000,[24328]=6000,[32673]=6000,[39053]=10000,[39073]=10000,[39095]=23000,[40058]=12000,[40094]=8000,[40079]=8000,[40382]=18000,[40457]=12000,[40465]=16000,[41958]=30000,[42028]=9000,[42038]=8000,[50079]=10000,[61500]=8000,[103706]=36000,[117850]=10000,[118008]=12000,[118726]=16000},["textLightAttackMissed"]="M",["textLightAttackDisappeared"]="X",["textLightAttackQueued"]="Q",["abilityRecastBarAlpha"]=0.9,["compatibilityRaiseDefaultUIHealthBar"]=0,["compatibilityRepositionDefaultUIHealthBar"]=true,["compatibilityDetectBandits"]=true,["compatibilityDetectADR"]=true,["actionBarRaiseTopBar"]=0,["showActionBarBottomBar"]=true}
 self.displayTimeMax      = 999
 self.displayTimeMin      = -99.
 self.historySize 	     = 99999
@@ -27,7 +27,6 @@ self.skillBarIdx0Id     = -1
 self.skillsSinceLastLA  = 0
 self.banditsFound       = false
 self.actionDurationReminderFound = false
-self.repositionHealthBar = true
 self.abilityRecastBarSpammableText = " -"
 
 self.controlRightLabelOffsetX   = 0.6
@@ -158,7 +157,6 @@ function WeaveDelays.ShowDelayBar()
 	self.visible = true
 	self.UpdateDelayBarVisibility()
 end
-
 
 function WeaveDelays.HideDelayBar()
 	self.visible = false
@@ -470,7 +468,7 @@ function WeaveDelays.UpdateActionBar(fullCombat)
 			if combo[3] < 2500 then
 				table.insert(delays[combo[1]], combo[3])
 			end
-			if not combo[4] or not combo[5] then
+			if (not combo[4] or not combo[5]) and not (i==1) then
 				missedLightAttacks[combo[1]] = missedLightAttacks[combo[1]] + 1
 			end
 		end
@@ -827,9 +825,61 @@ end
 --                 init
 -- ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-function WeaveDelays:Initialize()
-	-- Saved Vars
+function WeaveDelays:LoadSavedVariables()
 	self.savedVariables = ZO_SavedVars:New("WeaveDelaysVars", 1, nil, self.DefaultSavedVars)
+end
+
+function WeaveDelays.UpdateActionBarVisibility()
+	local showDelays    = self.savedVariables.showActionBarAddon
+	local showUptimes   = self.savedVariables.showActionBarUptimes
+	local showBottomBar = self.savedVariables.showActionBarBottomBar
+	
+	self.topLabel:SetHidden(not showDelays)
+	for _, v in ipairs(self.slotTopBar) do
+		v:SetHidden(not showDelays)
+	end
+	for _, v in ipairs(self.slotTopLeftLabel) do
+		v:SetHidden(not showDelays)
+	end
+	for _, v in ipairs(self.slotTopRightLabel) do
+		v:SetHidden(not showDelays)
+	end
+	
+	self.top2Label:SetHidden(not showUptimes)
+	for _, v in ipairs(self.slotTopBar2) do
+		v:SetHidden(not showUptimes)
+	end
+	for _, v in ipairs(self.slotTop2LeftLabel) do
+		v:SetHidden(not showUptimes)
+	end
+	for _, v in ipairs(self.slotTop2RightLabel) do
+		v:SetHidden(not showUptimes)
+	end
+	
+	self.bottomLabel:SetHidden(not showBottomBar)
+	for _, v in ipairs(self.slotBottomBar) do
+		v:SetHidden(not showBottomBar)
+	end
+	for _, v in ipairs(self.slotBottomLeftLabel) do
+		v:SetHidden(not showBottomBar)
+	end
+	for _, v in ipairs(self.slotBottomRightLabel) do
+		v:SetHidden(not showBottomBar)
+	end
+
+end
+
+function WeaveDelays:Initialize()
+	WeaveDelays:LoadSavedVariables()
+
+	-- turn off automatic detection of other addons
+	if not self.savedVariables.compatibilityDetectBandits then
+		self.banditsFound = false
+	end
+	if not self.savedVariables.compatibilityDetectADR then
+		self.actionDurationReminderFound = false
+	end
+	d("ADR found:", self.actionDurationReminderFound)
 	if self.savedVariables.numDelayBarSlots == nil or self.savedVariables.numDelayBarSlots < 1 then
 		self.savedVariables.numDelayBarSlots = 1
 	end
@@ -868,19 +918,19 @@ function WeaveDelays:Initialize()
 	self.slotBottomRightLabel = {}
 	
 	-- shift top bar if bandits is found
-	if BUI and BUI.Vars then
+	if self.savedVariables.compatibilityDetectBandits and BUI and BUI.Vars then
 		self.banditsFound = true
 	end
 	
-	local topBarOffsetHeight = 0
-	if self.banditsFound then
+	local topBarOffsetHeight = -self.savedVariables.actionBarRaiseTopBar
+	if self.actionDurationReminderFound then
 		local slot = ZO_ActionBar_GetButton(3).slot
 		local width,height = slot:GetDimensions()
-		topBarOffsetHeight = -height/2
-	elseif self.actionDurationReminderFound then
+		topBarOffsetHeight = topBarOffsetHeight-height
+	elseif self.banditsFound then
 		local slot = ZO_ActionBar_GetButton(3).slot
 		local width,height = slot:GetDimensions()
-		topBarOffsetHeight = -height
+		topBarOffsetHeight = topBarOffsetHeight-height/2
 	end
 
 	local drawTier = DT_HIGH
@@ -890,33 +940,34 @@ function WeaveDelays:Initialize()
 	height = height * self.controlBoxHeight
 	width  = width  * self.controlBoxWidth
 	
-	local lt2 =  WINDOW_MANAGER:CreateControl(nil, slot, CT_LABEL)
-	lt2:SetFont(self.savedVariables.actionBarFontFace)
-	lt2:SetDimensions(width, height)
-	lt2:SetDrawTier(drawTier)
-	lt2:SetDrawLayer(drawLevel+1)
-	lt2:SetText("uptime")
-	lt2:SetHorizontalAlignment(TEXT_ALIGN_RIGHT)
-	lt2:SetAnchor(BOTTOMLEFT,slot,TOPLEFT,-1.1*width,topBarOffsetHeight+self.controlTopLabelOffsetY-height)
+	self.top2Label =  WINDOW_MANAGER:CreateControl(nil, slot, CT_LABEL)
+	self.top2Label:SetFont(self.savedVariables.actionBarFontFace)
+	self.top2Label:SetDimensions(width, height)
+	self.top2Label:SetDrawTier(drawTier)
+	self.top2Label:SetDrawLayer(drawLevel+1)
+	self.top2Label:SetText("uptime")
+	self.top2Label:SetHorizontalAlignment(TEXT_ALIGN_RIGHT)
+	self.top2Label:SetAnchor(BOTTOMLEFT,slot,TOPLEFT,-1.1*width,topBarOffsetHeight+self.controlTopLabelOffsetY-height)
 	
-	local lt1 =  WINDOW_MANAGER:CreateControl(nil, slot, CT_LABEL)
-	lt1:SetFont(self.savedVariables.actionBarFontFace)
-	lt1:SetDimensions(width, height)
-	lt1:SetDrawTier(drawTier)
-	lt1:SetDrawLayer(drawLevel+1)
-	lt1:SetText("delay")
-	lt1:SetHorizontalAlignment(TEXT_ALIGN_RIGHT)
-	lt1:SetAnchor(BOTTOMLEFT,slot,TOPLEFT,-1.1*width,topBarOffsetHeight+self.controlTopLabelOffsetY+2)
+	self.topLabel =  WINDOW_MANAGER:CreateControl(nil, slot, CT_LABEL)
+	self.topLabel:SetFont(self.savedVariables.actionBarFontFace)
+	self.topLabel:SetDimensions(width, height)
+	self.topLabel:SetDrawTier(drawTier)
+	self.topLabel:SetDrawLayer(drawLevel+1)
+	self.topLabel:SetText("delay")
+	self.topLabel:SetHorizontalAlignment(TEXT_ALIGN_RIGHT)
+	self.topLabel:SetAnchor(BOTTOMLEFT,slot,TOPLEFT,-1.1*width,topBarOffsetHeight+self.controlTopLabelOffsetY+2)
 	
-	local lb1 = WINDOW_MANAGER:CreateControl(nil, slot, CT_LABEL)
-	lb1:SetDimensions(width, height)
-	lb1:SetFont(self.savedVariables.actionBarFontFacevvvvvvvv)
-	lb1:SetDrawTier(drawTier)
-	lb1:SetDrawLayer(drawLevel+1)
-	lb1:SetText("offset")
-	lb1:SetHorizontalAlignment(TEXT_ALIGN_RIGHT)
-	lb1:SetAnchor(TOPLEFT,slot,BOTTOMLEFT,-1.1*width,0)
-		
+	self.bottomLabel = WINDOW_MANAGER:CreateControl(nil, slot, CT_LABEL)
+	self.bottomLabel:SetDimensions(width, height)
+	self.bottomLabel:SetFont(self.savedVariables.actionBarFontFace)
+	self.bottomLabel:SetDrawTier(drawTier)
+	self.bottomLabel:SetDrawLayer(drawLevel+1)
+	self.bottomLabel:SetText("")
+	self.bottomLabel:SetHorizontalAlignment(TEXT_ALIGN_RIGHT)
+	self.bottomLabel:SetAnchor(TOPLEFT,slot,BOTTOMLEFT,-1.1*width,0)
+
+
 	for i = 1, self.numSlots do
 		slot = ZO_ActionBar_GetButton(self.slotOffset+i).slot
 		
@@ -999,21 +1050,8 @@ function WeaveDelays:Initialize()
 	
 	ZO_CreateStringId("SI_BINDING_NAME_WD_TOGGLE", "Toggle WeaveDelays window")
 	
-	if not self.banditsFound and self.repositionHealthBar then
-		local _, point, relativeTo, relativePoint, offsetX, offsetY = ZO_PlayerAttributeHealth:GetAnchor(0)
-		slot = ZO_ActionBar_GetButton(self.slotOffset+1).slot
-		width,height = slot:GetDimensions()
-		offsetY = offsetY - 0.5*height
-		ZO_PlayerAttributeHealth:SetAnchor(point, relativeTo, relativePoint, offsetX, offsetY)
-	end
-	
-	if self.actionDurationReminderFound and self.repositionHealthBar then
-		local _, point, relativeTo, relativePoint, offsetX, offsetY = ZO_PlayerAttributeHealth:GetAnchor(0)
-		slot = ZO_ActionBar_GetButton(self.slotOffset+1).slot
-		width,height = slot:GetDimensions()
-		offsetY = offsetY - height
-		ZO_PlayerAttributeHealth:SetAnchor(point, relativeTo, relativePoint, offsetX, offsetY)
-	end
+	-- compatibility with other addons/default UI
+	self.repositionHealthBar()
 	
 	--- delay bar
 	local bg = WINDOW_MANAGER:GetControlByName('WEAVEDELAYSBARBG')
@@ -1090,10 +1128,39 @@ function WeaveDelays:Initialize()
 	end
 
 	self.UpdateDelayBarVisibility()
-
+	self.UpdateActionBarVisibility()
+	
 	--- menu
 	self.InitializeMenu()
 					
+end
+
+function WeaveDelays.repositionHealthBar()
+
+	if self.savedVariables.compatibilityRepositionDefaultUIHealthBar then
+	
+		local raiseBy = self.savedVariables.compatibilityRaiseDefaultUIHealthBar		
+		local slot = ZO_ActionBar_GetButton(self.slotOffset+1).slot
+		local width,height = slot:GetDimensions()
+		
+		if not self.banditsFound then
+			raiseBy = raiseBy + 0.5*height
+		end
+		
+		if self.actionDurationReminderFound then
+			raiseBy = raiseBy + height
+		end
+		
+		if raiseBy ~= 0 then
+			local _, point, relativeTo, relativePoint, offsetX, offsetY = ZO_PlayerAttributeHealth:GetAnchor(0)
+			if self.defaultUIHealtBarOffsetX == nil then
+				self.defaultUIHealtBarOffsetX = offsetX
+				self.defaultUIHealtBarOffsetY = offsetY
+			end
+			ZO_PlayerAttributeHealth:SetAnchor(point, relativeTo, relativePoint, self.defaultUIHealtBarOffsetX, self.defaultUIHealtBarOffsetY-raiseBy)
+		end
+		
+	end
 end
 
 function WeaveDelays.updateTooltip(c, abilityId)
@@ -1263,16 +1330,63 @@ function WeaveDelays.InitializeMenu()
 	},
 	{
 		type = "checkbox",
-		name = "Show delays in action bar",
+		name = "Show delays and missed LA's before skill in action bar",
 		tooltip = "",
 		getFunc = function()
 			return self.savedVariables.showActionBarAddon
 		end,
 		setFunc = function(value)
 			self.savedVariables.showActionBarAddon = value
+			self.UpdateActionBarVisibility()
 		end,
 		width = "full",
 		default = false,
+		requiresReload = false,
+	},
+	{
+		type = "checkbox",
+		name = "Show uptimes in action bar",
+		tooltip = "",
+		getFunc = function()
+			return self.savedVariables.showActionBarUptimes
+		end,
+		setFunc = function(value)
+			self.savedVariables.showActionBarUptimes = value
+			self.UpdateActionBarVisibility()
+		end,
+		width = "full",
+		default = false,
+		requiresReload = false,
+	},
+	{
+		type = "checkbox",
+		name = "Show missed LA's after skill",
+		tooltip = "",
+		getFunc = function()
+			return self.savedVariables.showActionBarBottomBar
+		end,
+		setFunc = function(value)
+			self.savedVariables.showActionBarBottomBar = value
+			self.UpdateActionBarVisibility()
+		end,
+		width = "full",
+		default = false,
+		requiresReload = false,
+	},
+	{
+		type = "slider",
+		name = "Raise upper action bar boxes",
+		min = -100,
+		max = 100,
+		step = 1,
+		getFunc = function()
+			return self.savedVariables.actionBarRaiseTopBar
+		end,
+		setFunc = function(value)
+			self.savedVariables.actionBarRaiseTopBar = tonumber(value)
+		end,
+		width = "full",
+		default = 0,
 		requiresReload = true,
 	},
 	{
@@ -1898,8 +2012,82 @@ function WeaveDelays.InitializeMenu()
 			},
 		--}
 	--}
+	{
+		type = "header",
+		name = "Compatibility",
+		width = "full",
+	},			
+	{
+		type = "description",
+		text = "Settings for compatibility with other Addons",
+		width = "full",
+	},
+	{
+		type = "checkbox",
+		name = "Detect Bandits UI",
+		tooltip = "Enable the automatic detection of Bandits UI",
+		getFunc = function()
+			return self.savedVariables.compatibilityDetectBandits
+		end,
+		setFunc = function(value)
+			self.savedVariables.compatibilityDetectBandits = value
+		end,
+		width = "full",
+		default = true,
+		requiresReload = true,
+	},
+	{
+		type = "checkbox",
+		name = "Detect Action Duration Reminder",
+		tooltip = "Enable the automatic detection of Action Duration Reminder",
+		getFunc = function()
+			return self.savedVariables.compatibilityDetectADR
+		end,
+		setFunc = function(value)
+			self.savedVariables.compatibilityDetectADR = value
+		end,
+		width = "full",
+		default = true,
+		requiresReload = true,
+	},
+	{
+		type = "checkbox",
+		name = "Reposition default UI health bar",
+		tooltip = "Reposition the default UI health bar automatically if some other addons are found, can be tuned with the setting below.",
+		getFunc = function()
+			return self.savedVariables.compatibilityRepositionDefaultUIHealthBar
+		end,
+		setFunc = function(value)
+			self.savedVariables.compatibilityRepositionDefaultUIHealthBar = value
+		end,
+		width = "full",
+		default = true,
+		requiresReload = true,
+	},
+	{
+		type = "slider",
+		name = "Raise default UI health bar",
+		tooltip = "Raise default UI health bar by this amount, in addition to the automatic setting.",
+		min = -100,
+		max = 100,
+		step = 1,
+		getFunc = function()
+			return self.savedVariables.compatibilityRaiseDefaultUIHealthBar
+		end,
+		setFunc = function(value)
+			self.savedVariables.compatibilityRaiseDefaultUIHealthBar = tonumber(value)
+			self.repositionHealthBar()
+			
+		end,
+		width = "full",
+		default = 0,
+		requiresReload = false,
+	},
+	
 	}
 	LibAddonMenu2:RegisterOptionControls(self.name, optionsTable)
+	
+	--
 	
 	CALLBACK_MANAGER:RegisterCallback("LAM-PanelOpened", self.updateSkillsInMenu)
 	
@@ -1912,7 +2100,6 @@ function WeaveDelays.OnAddOnLoaded(eventCode, addonName)
 	if addonName == "ActionDurationReminder" then
 		self.actionDurationReminderFound = true
 	end
-	
 	
 	if addonName == self.name then
 		WeaveDelays:Initialize()
