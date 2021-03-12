@@ -5,7 +5,7 @@ local self = WeaveDelays
 self.name                = 'WeaveDelays'
 self.slash               = "/weavedelays"
 self.version             = "0.5.1"
-self.DefaultSavedVars    = {["delayBarOffsetX"]=300,["delayBarOffsetY"]=400,["delayBarAlpha"]=0.9,["delayBar2OffsetX"]=300,["delayBar2OffsetY"]=500,["numDelayBarSlots"]=10,["numDelayBarRows"]=1,["showDelayBar"]=true,["showAbilityRecastBar"]=false,["showSkillsInDelayBar"]=true,["showDelayBarOnlyInCombat"]=false,["showDelayBarAfterCombat"]=10,["unlockUI"]=false,["showActionBarAddon"]=true,["showActionBarUptimes"]=true,["abilityRecastBarFontFace"]="ZoFontGamepad25",["abilityRecastBarNumSlots"]=10,["fontFaceList"]={},["actionBarFontFace"]="ZoFontGameSmall",["delayBarFontFace"]="ZoFontGameSmall",["delayBarPalette"]="greenred",["abilityDurations"]={[20660]=14000,[20779]=20000,[20930]=14000,[21729]=14000,[21765]=6000,[22240]=20000,[22095]=10000,[22259]=12000,[23205]=10000,[23213]=23000,[23231]=15000,[24165]=40000,[24328]=6000,[26768]=10000,[26869]=10000,[32673]=6000,[32710]=18000,[32853]=15000,[35434]=20000,[36049]=12000,[36891]=20000,[36935]=20000,[36957]=10000,[36967]=20000,[38660]=10000,[38689]=14000,[38695]=10000,[38839]=10000,[38906]=10000,[39053]=10000,[39073]=10000,[39095]=23000,[39475]=15000,[40058]=12000,[40079]=8000,[40094]=8000,[40317]=10000,[40328]=10000,[40382]=18000,[40452]=12000,[40457]=12000,[40465]=16000,[41958]=30000,[42028]=10000,[42038]=8000,[50079]=10000,[61500]=8000,[61919]=40000,[61927]=60000,[86019]=6500,[86031]=10000,[86058]=25000,[103706]=36000,[117850]=10000,[118008]=12000,[118726]=16000},["textLightAttackMissed"]="M",["textLightAttackDisappeared"]="X",["textLightAttackQueued"]="Q",["textBashed"]="B",["abilityRecastBarAlpha"]=0.9,["compatibilityRaiseDefaultUIHealthBar"]=0,["compatibilityRepositionDefaultUIHealthBar"]=true,["compatibilityDetectBandits"]=true,["compatibilityDetectADR"]=true,["compatibilityDetectFAB"]=true,["actionBarRaiseTopBar"]=0,["showActionBarBottomBar"]=true}
+self.DefaultSavedVars    = {["delayBarOffsetX"]=300,["delayBarOffsetY"]=400,["delayBarAlpha"]=0.9,["delayBar2OffsetX"]=300,["delayBar2OffsetY"]=500,["numDelayBarSlots"]=10,["numDelayBarRows"]=1,["showDelayBar"]=true,["showAbilityRecastBar"]=false,["showSkillsInDelayBar"]=true,["showDelayBarOnlyInCombat"]=false,["showDelayBarAfterCombat"]=10,["unlockUI"]=false,["showActionBarAddon"]=true,["showActionBarUptimes"]=true,["abilityRecastBarFontFace"]="ZoFontGamepad25",["abilityRecastBarNumSlots"]=10,["fontFaceList"]={},["actionBarFontFace"]="ZoFontGameSmall",["delayBarFontFace"]="ZoFontGameSmall",["delayBarPalette"]="greenred",["abilityDurations"]={[20660]=14000,[20779]=20000,[20930]=14000,[21729]=14000,[21765]=6000,[22240]=20000,[22095]=10000,[22259]=12000,[23205]=10000,[23213]=23000,[23231]=15000,[24165]=40000,[24328]=6000,[26768]=10000,[26869]=10000,[32673]=6000,[32710]=18000,[32853]=15000,[35434]=20000,[36049]=12000,[36891]=20000,[36935]=20000,[36957]=10000,[36967]=20000,[38660]=10000,[38689]=14000,[38695]=10000,[38839]=10000,[38906]=10000,[39053]=10000,[39073]=10000,[39095]=23000,[39475]=15000,[40058]=12000,[40079]=8000,[40094]=8000,[40317]=10000,[40328]=10000,[40382]=18000,[40452]=12000,[40457]=12000,[40465]=16000,[41958]=30000,[42028]=10000,[42038]=8000,[50079]=10000,[61500]=8000,[61919]=40000,[61927]=60000,[86019]=6500,[86031]=10000,[86058]=25000,[103706]=36000,[117850]=10000,[118008]=12000,[118726]=16000},["textLightAttackMissed"]="M",["textLightAttackDisappeared"]="X",["textLightAttackQueued"]="Q",["textBashed"]="B",["abilityRecastBarAlpha"]=0.9,["abilityRecastBarUpdateInterval"]=200,["compatibilityRaiseDefaultUIHealthBar"]=0,["compatibilityRepositionDefaultUIHealthBar"]=true,["compatibilityDetectBandits"]=true,["compatibilityDetectADR"]=true,["compatibilityDetectFAB"]=true,["actionBarRaiseTopBar"]=0,["showActionBarBottomBar"]=true}
 self.displayTimeMax      = 999
 self.displayTimeMin      = -99.
 self.historySize 	     = 99999
@@ -624,39 +624,44 @@ function WeaveDelays.UpdateAbilityRecastBar()
 	
 	for i,p in ipairs(abilitiesSortedByPriority) do
 		abilityId, abilityTimeout = unpack(p)
-		local abilityIcon  = WINDOW_MANAGER:GetControlByName('WEAVEDELAYSBAR2S'..abilityIndex)
-		local abilityTimer = WINDOW_MANAGER:GetControlByName('WEAVEDELAYSBAR2T'..abilityIndex)
 		
-		local timeToCast = abilityTimeout-gameTime
-		local t0 = timeToCast
-		while t0 > 1000 do
-			abilityIcon:SetTexture(nil)
-			abilityIcon:SetColor(1.0,1.0,1.0,0.2)
-			abilityTimer:SetColor(1.0,1.0,1.0,1.0)
-			abilityTimer:SetText(self.abilityRecastBarSpammableText)
-			abilityIndex = abilityIndex + 1
+		-- if cast has already been missed at the next possible slot, suppress future casts
+		if abilitiesTimeoutPassed[abilityId] == nil then
+			local abilityIcon  = WINDOW_MANAGER:GetControlByName('WEAVEDELAYSBAR2S'..abilityIndex)
+			local abilityTimer = WINDOW_MANAGER:GetControlByName('WEAVEDELAYSBAR2T'..abilityIndex)
+			
+			local timeToCast = abilityTimeout-gameTime
+			local t0 = timeToCast-(abilityIndex-1)*1000
+			-- can fit a spammable before it needs to be recasted!
+			while t0 > 1000 do
+				abilityIcon:SetTexture(nil)
+				abilityIcon:SetColor(1.0,1.0,1.0,0.2)
+				abilityTimer:SetColor(1.0,1.0,1.0,1.0)
+				abilityTimer:SetText(self.abilityRecastBarSpammableText)
+				abilityIndex = abilityIndex + 1
+				if abilityIndex > self.savedVariables.abilityRecastBarNumSlots then 
+					break
+				end
+				abilityIcon  = WINDOW_MANAGER:GetControlByName('WEAVEDELAYSBAR2S'..abilityIndex)
+				abilityTimer = WINDOW_MANAGER:GetControlByName('WEAVEDELAYSBAR2T'..abilityIndex)
+				t0 = t0 - 1000
+			end
 			if abilityIndex > self.savedVariables.abilityRecastBarNumSlots then 
 				break
 			end
-		    abilityIcon  = WINDOW_MANAGER:GetControlByName('WEAVEDELAYSBAR2S'..abilityIndex)
-		    abilityTimer = WINDOW_MANAGER:GetControlByName('WEAVEDELAYSBAR2T'..abilityIndex)
-			t0 = t0 - 1000
-		end
-		if abilityIndex > self.savedVariables.abilityRecastBarNumSlots then 
-			break
-		end
-		if timeToCast > 0 or abilitiesTimeoutPassed[abilityId] == nil then
-			abilityIcon:SetColor(1.0,1.0,1.0,1.0)
-			abilityIcon:SetTexture(self.GetTextureFromAbilityId(abilityId))
-			if timeToCast < 0 then
-				abilityTimer:SetText(""..math.floor((timeToCast)*0.001))
-				abilityTimer:SetColor(1.0,0.0,0.0,1.0)
-				abilitiesTimeoutPassed[abilityId] = true
-			else
-				abilityTimer:SetText(""..math.floor((timeToCast)*0.01)*0.1)
-				abilityTimer:SetColor(1.0,1.0,1.0,1.0)
+			if timeToCast > 0 or abilitiesTimeoutPassed[abilityId] == nil then
+				abilityIcon:SetColor(1.0,1.0,1.0,1.0)
+				abilityIcon:SetTexture(self.GetTextureFromAbilityId(abilityId))
+				if timeToCast < 0 then
+					abilityTimer:SetText(""..math.floor((timeToCast)*0.001))
+					abilityTimer:SetColor(1.0,0.0,0.0,1.0)
+					abilitiesTimeoutPassed[abilityId] = true
+				else
+					abilityTimer:SetText(""..math.floor((timeToCast)*0.01)*0.1)
+					abilityTimer:SetColor(1.0,1.0,1.0,1.0)
+				end
+				abilityIndex = abilityIndex + 1
 			end
-			abilityIndex = abilityIndex + 1
 		end
 		if abilityIndex > self.savedVariables.abilityRecastBarNumSlots then 
 			break
@@ -941,7 +946,7 @@ function WeaveDelays:Initialize()
 	EVENT_MANAGER:RegisterForEvent(self.name.."EventEffectChanged", EVENT_EFFECT_CHANGED, self.EventEffectChanged)
 	EVENT_MANAGER:RegisterForEvent(self.name, EVENT_COMBAT_EVENT, self.OnCombatEvent)
 	EVENT_MANAGER:RegisterForEvent(self.name.."Hide", EVENT_RETICLE_HIDDEN_UPDATE, self.OnReticleHiddenUpdate)
-	EVENT_MANAGER:RegisterForUpdate("WeaveDelaysUiLoop", 100, self.UiLoop)
+	EVENT_MANAGER:RegisterForUpdate("WeaveDelaysUiLoop", self.savedVariables.abilityRecastBarUpdateInterval, self.UiLoop)
 
     ACTION_BAR_ASSIGNMENT_MANAGER:RegisterCallback("SlotUpdated", function(hotbarCategory, actionSlotIndex, isChangedByPlayer)
 		local weaponPair = self.log.getActiveWeaponPair()
@@ -1645,12 +1650,12 @@ function WeaveDelays.InitializeMenu()
 	},
 	{
 		type = "header",
-		name = "Recast timer bar (beta)",
+		name = "Recast timer bar",
 		width = "full",
 	},			
 	{
 		type = "description",
-		text = "still an experimental feature",
+		text = "Show abilities with duration in the order they need to be recasted. Empty spaces can be used for spammables. To disable tracking for an ability, set the duration to 0.",
 		width = "full",
 	},
 	{
@@ -1666,6 +1671,27 @@ function WeaveDelays.InitializeMenu()
 		width = "full",
 		default = false,
 		requiresReload = true,
+	},
+	{
+		type = "slider",
+		name = "Update interval (ms)",
+		min = 50,
+		max = 1000,
+		step = 50,
+		disabled = function()
+			return (not self.savedVariables.abilityRecastBarUpdateInterval)
+		end,
+		getFunc = function()
+			return self.savedVariables.abilityRecastBarUpdateInterval
+		end,
+		setFunc = function(value)
+			self.savedVariables.abilityRecastBarUpdateInterval = tonumber(value)
+			EVENT_MANAGER:UnregisterForUpdate("WeaveDelaysUiLoop")
+			EVENT_MANAGER:RegisterForUpdate("WeaveDelaysUiLoop", self.savedVariables.abilityRecastBarUpdateInterval, self.UiLoop)
+		end,
+		width = "full",
+		default = 200,
+		requiresReload = false,
 	},
 	{
 		type = "slider",
