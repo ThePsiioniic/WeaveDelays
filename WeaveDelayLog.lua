@@ -63,6 +63,7 @@ function WeaveDelayLog.new()
 		[40317] = 1000660.0,
 		[386606] = 10000.0,
 		[38839] = 10000.0,
+		[26869] = 10000.0,
 	}
 	
 	local abilityActiveTimes = {}

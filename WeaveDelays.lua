@@ -4,7 +4,7 @@ local self = WeaveDelays
 
 self.name                = 'WeaveDelays'
 self.slash               = "/weavedelays"
-self.version             = "0.5.3"
+self.version             = "0.5.4"
 self.DefaultSavedVars    = {["delayBarOffsetX"]=300,["delayBarOffsetY"]=400,["delayBarAlpha"]=0.9,["delayBar2OffsetX"]=300,["delayBar2OffsetY"]=500,["numDelayBarSlots"]=10,["numDelayBarRows"]=1,["showDelayBar"]=true,["showAbilityRecastBar"]=false,["showSkillsInDelayBar"]=true,["showDelayBarOnlyInCombat"]=false,["showDelayBarAfterCombat"]=10,["unlockUI"]=false,["showActionBarAddon"]=true,["showActionBarUptimes"]=true,["abilityRecastBarFontFace"]="ZoFontGamepad25",["abilityRecastBarNumSlots"]=10,["fontFaceList"]={},["actionBarFontFace"]="ZoFontGameSmall",["delayBarFontFace"]="ZoFontGameSmall",["delayBarPalette"]="greenred",["abilityDurations"]={[20660]=14000,[20779]=20000,[20930]=14000,[21729]=14000,[21765]=6000,[22240]=20000,[22095]=10000,[22259]=12000,[23205]=10000,[23213]=23000,[23231]=15000,[24165]=40000,[24328]=6000,[26768]=10000,[26869]=10000,[32673]=6000,[32710]=18000,[32853]=15000,[35434]=20000,[36049]=12000,[36891]=20000,[36935]=20000,[36957]=10000,[36967]=20000,[38660]=10000,[38689]=14000,[38695]=10000,[38839]=10000,[38906]=10000,[39053]=10000,[39073]=10000,[39095]=23000,[39475]=15000,[40058]=12000,[40079]=8000,[40094]=8000,[40317]=10000,[40328]=10000,[40382]=18000,[40452]=12000,[40457]=12000,[40465]=16000,[41958]=30000,[42028]=10000,[42038]=8000,[50079]=10000,[61500]=8000,[61919]=40000,[61927]=60000,[86019]=6500,[86031]=10000,[86058]=25000,[103706]=36000,[117850]=10000,[118008]=12000,[118726]=16000},["textLightAttackMissed"]="M",["textLightAttackDisappeared"]="X",["textLightAttackQueued"]="Q",["textBashed"]="B",["abilityRecastBarAlpha"]=0.9,["abilityRecastBarUpdateInterval"]=200,["compatibilityRaiseDefaultUIHealthBar"]=0,["compatibilityRepositionDefaultUIHealthBar"]=true,["compatibilityDetectBandits"]=true,["compatibilityDetectADR"]=true,["compatibilityDetectFAB"]=true,["actionBarRaiseTopBar"]=0,["showActionBarBottomBar"]=true,["frontBarSkills"]={nil,nil,nil,nil,nil,nil},["backBarSkills"]={nil,nil,nil,nil,nil,nil}}
 self.displayTimeMax      = 999
 self.displayTimeMin      = -99.
@@ -691,7 +691,7 @@ function WeaveDelays.OnCombatEvent(eventCode,  result, isError,  abilityName,  a
 			self.log.flagLightAttackQueued()
 		end
 	end
-	if abilityActionSlotType == ACTION_SLOT_TYPE_BLOCK and abilityId == 21970 and (result == ACTION_RESULT_DAMAGE or result == ACTION_RESULT_CRITICAL_DAMAGE) then
+	if abilityActionSlotType == ACTION_SLOT_TYPE_BLOCK and abilityId == 21970 and (result == ACTION_RESULT_DAMAGE or result == ACTION_RESULT_CRITICAL_DAMAGE) and sourceName == self.playerName then
 		self.log.confirmBash()
 		self.Update()
 	end
