@@ -4,14 +4,12 @@ local self = WeaveDelays
 
 self.name                = 'WeaveDelays'
 self.slash               = "/weavedelays"
-self.version             = "0.5.4"
-self.DefaultSavedVars    = {["delayBarOffsetX"]=300,["delayBarOffsetY"]=400,["delayBarAlpha"]=0.9,["delayBar2OffsetX"]=300,["delayBar2OffsetY"]=500,["numDelayBarSlots"]=10,["numDelayBarRows"]=1,["showDelayBar"]=true,["showAbilityRecastBar"]=false,["showSkillsInDelayBar"]=true,["showDelayBarOnlyInCombat"]=false,["showDelayBarAfterCombat"]=10,["unlockUI"]=false,["showActionBarAddon"]=true,["showActionBarUptimes"]=true,["abilityRecastBarFontFace"]="ZoFontGamepad25",["abilityRecastBarNumSlots"]=10,["fontFaceList"]={},["actionBarFontFace"]="ZoFontGameSmall",["delayBarFontFace"]="ZoFontGameSmall",["delayBarPalette"]="greenred",["abilityDurations"]={[20660]=14000,[20779]=20000,[20930]=14000,[21729]=14000,[21765]=6000,[22240]=20000,[22095]=10000,[22259]=12000,[23205]=10000,[23213]=23000,[23231]=15000,[24165]=40000,[24328]=6000,[26768]=10000,[26869]=10000,[32673]=6000,[32710]=18000,[32853]=15000,[35434]=20000,[36049]=12000,[36891]=20000,[36935]=20000,[36957]=10000,[36967]=20000,[38660]=10000,[38689]=14000,[38695]=10000,[38839]=10000,[38906]=10000,[39053]=10000,[39073]=10000,[39095]=23000,[39475]=15000,[40058]=12000,[40079]=8000,[40094]=8000,[40317]=10000,[40328]=10000,[40382]=18000,[40452]=12000,[40457]=12000,[40465]=16000,[41958]=30000,[42028]=10000,[42038]=8000,[50079]=10000,[61500]=8000,[61919]=40000,[61927]=60000,[86019]=6500,[86031]=10000,[86058]=25000,[103706]=36000,[117850]=10000,[118008]=12000,[118726]=16000},["textLightAttackMissed"]="M",["textLightAttackDisappeared"]="X",["textLightAttackQueued"]="Q",["textBashed"]="B",["abilityRecastBarAlpha"]=0.9,["abilityRecastBarUpdateInterval"]=200,["compatibilityRaiseDefaultUIHealthBar"]=0,["compatibilityRepositionDefaultUIHealthBar"]=true,["compatibilityDetectBandits"]=true,["compatibilityDetectADR"]=true,["compatibilityDetectFAB"]=true,["actionBarRaiseTopBar"]=0,["showActionBarBottomBar"]=true,["frontBarSkills"]={nil,nil,nil,nil,nil,nil},["backBarSkills"]={nil,nil,nil,nil,nil,nil}}
+self.version             = "0.6.1"
+self.DefaultSavedVars    = {["accountWide"]=false,["delayBarOffsetX"]=300,["delayBarOffsetY"]=400,["delayBarAlpha"]=0.9,["delayBar2OffsetX"]=300,["delayBar2OffsetY"]=500,["numDelayBarSlots"]=10,["numDelayBarRows"]=1,["showDelayBar"]=true,["showAbilityRecastBar"]=false,["showSkillsInDelayBar"]=true,["showDelayBarOnlyInCombat"]=false,["showDelayBarAfterCombat"]=10,["unlockUI"]=false,["showActionBarAddon"]=true,["showActionBarUptimes"]=true,["abilityRecastBarFontFace"]="ZoFontGamepad25",["abilityRecastBarNumSlots"]=10,["fontFaceList"]={},["actionBarFontFace"]="ZoFontGameSmall",["delayBarFontFace"]="ZoFontGameSmall",["delayBarPalette"]="greenred",["abilityDurations"]={[20660]=14000,[20779]=20000,[20930]=14000,[21729]=14000,[21765]=6000,[22240]=20000,[22095]=10000,[22259]=12000,[23205]=10000,[23213]=23000,[23231]=15000,[24165]=40000,[24328]=6000,[26768]=10000,[26869]=10000,[32673]=6000,[32710]=18000,[32853]=15000,[35434]=20000,[36049]=12000,[36891]=20000,[36935]=20000,[36957]=10000,[36967]=20000,[38660]=10000,[38689]=14000,[38695]=10000,[38839]=10000,[38906]=10000,[39053]=10000,[39073]=10000,[39095]=23000,[39475]=15000,[40058]=12000,[40079]=8000,[40094]=8000,[40317]=10000,[40328]=10000,[40382]=18000,[40452]=12000,[40457]=12000,[40465]=16000,[41958]=30000,[42028]=10000,[42038]=8000,[50079]=10000,[61500]=8000,[61919]=40000,[61927]=60000,[86019]=6500,[86031]=10000,[86058]=25000,[103706]=36000,[117850]=10000,[118008]=12000,[118726]=16000},["textLightAttackMissed"]="M",["textLightAttackDisappeared"]="X",["textLightAttackQueued"]="Q",["textBashed"]="B",["abilityRecastBarAlpha"]=0.9,["abilityRecastBarUpdateInterval"]=200,["compatibilityRaiseDefaultUIHealthBar"]=0,["compatibilityRepositionDefaultUIHealthBar"]=true,["compatibilityDetectBandits"]=true,["compatibilityDetectADR"]=true,["compatibilityDetectFAB"]=true,["actionBarRaiseTopBar"]=0,["showActionBarBottomBar"]=true,["frontBarSkills"]={nil,nil,nil,nil,nil,nil},["backBarSkills"]={nil,nil,nil,nil,nil,nil},["delayBarFrameR"]=0.8,["delayBarFrameG"]=0.8,["delayBarFrameB"]=0.8,["delayBarFrameA"]=1.0,["recastBarFrameR"]=0.8,["recastBarFrameG"]=0.8,["recastBarFrameB"]=1.0,["recastBarFrameA"]=1.0}
 self.displayTimeMax      = 999
 self.displayTimeMin      = -99.
 self.historySize 	     = 99999
 self.historySizeInCombat = 5
-self.numSlots            = 6
-self.slotOffset          = 2
 self.playerName          = GetRawUnitName("player")
 
 self.inCombat           = false
@@ -29,6 +27,7 @@ self.banditsFound       = false
 self.actionDurationReminderFound = false
 self.fancyActionBarFound = false
 self.abilityRecastBarSpammableText = " -"
+self.combatCounter = 0
 
 self.controlRightLabelOffsetX   = 0.6
 self.controlBoxHeight           = 0.33
@@ -164,8 +163,8 @@ function WeaveDelays.HideDelayBar()
 	self.UpdateDelayBarVisibility()
 end
 
-function WeaveDelays.HideDelayBarIfNotInCombat()
-	if not self.inCombat then
+function WeaveDelays.HideDelayBarIfNotInCombat(counter)
+	if not self.inCombat and counter >= self.combatCounter then
 		self.visible = false
 		self.UpdateDelayBarVisibility()
 	end
@@ -454,7 +453,7 @@ function WeaveDelays.UpdateActionBar(fullCombat)
 	local missedLightAttacks = {}
 	local missedLightAttacksAfterSkill = {}
 
-	for i = 1, self.numSlots do
+	for i = 1, ACTION_BAR_SLOTS_PER_PAGE do
 		table.insert(delays, {})
 		table.insert(missedLightAttacks, 0)
 		table.insert(missedLightAttacksAfterSkill, 0)
@@ -481,9 +480,9 @@ function WeaveDelays.UpdateActionBar(fullCombat)
 	end
 	
 	-- action bar
-	for i = 1, self.numSlots do
+	for i = 1, ACTION_BAR_SLOTS_PER_PAGE do
 	
-		local uptime = self.log.getUptime(activeBarIndex, self.slotOffset+i, historySize)
+		local uptime = self.log.getUptime(activeBarIndex, ACTION_BAR_FIRST_NORMAL_SLOT_INDEX+i, historySize)
 		self.SetColorR(self.slotTopBar2[i], uptime)
 		self.slotTop2LeftLabel[i]:SetText(self.FormatTimePercent(uptime))
 		
@@ -763,7 +762,7 @@ function WeaveDelays.OnWeaponSwap(_, activeWeaponPair, locked)
 	end
 	
 	if self.fancyActionBarFound then
-		local slot = ZO_ActionBar_GetButton(self.slotOffset+1).slot
+		local slot = ZO_ActionBar_GetButton(ACTION_BAR_FIRST_NORMAL_SLOT_INDEX+1).slot
 		local fwidth,fheight = slot:GetDimensions()
 		local topBarOffsetHeight = -self.savedVariables.actionBarRaiseTopBar
 		local bottomBarOffsetHeight = 0
@@ -775,13 +774,13 @@ function WeaveDelays.OnWeaponSwap(_, activeWeaponPair, locked)
 		self.top2Label:SetAnchor(BOTTOMLEFT, slot, TOPLEFT,-1.1*fwidth, topBarOffsetHeight+self.controlTopLabelOffsetY-fheight*self.controlBoxHeight)
 		self.topLabel:SetAnchor(BOTTOMLEFT, slot, TOPLEFT,-1.1*fwidth, topBarOffsetHeight+self.controlTopLabelOffsetY+2)
 		self.bottomLabel:SetAnchor(TOPLEFT, slot, BOTTOMLEFT,-1.1*fwidth, bottomBarOffsetHeight)
-		for i = 1, self.numSlots do
-			slot = ZO_ActionBar_GetButton(self.slotOffset+i).slot
+		for i = 1, ACTION_BAR_SLOTS_PER_PAGE do
+			slot = ZO_ActionBar_GetButton(ACTION_BAR_FIRST_NORMAL_SLOT_INDEX+i).slot
 			local width,height = slot:GetDimensions()
 			height = height * self.controlBoxHeight
 			width  = width  * self.controlBoxWidth
 			
-			if i == self.numSlots then
+			if i == ACTION_BAR_SLOTS_PER_PAGE then
 				topBarOffsetHeight = -self.savedVariables.actionBarRaiseTopBar - 4
 				bottomBarOffsetHeight = 0
 			end
@@ -824,8 +823,10 @@ function WeaveDelays.leaveCombat()
 	self.trackedAbilities = {}
 	
 	if self.savedVariables.showDelayBarOnlyInCombat then
+		self.combatCounter = self.combatCounter + 1
+		local counter = self.combatCounter
 		if self.visible then
-			zo_callLater(function () WeaveDelays.HideDelayBarIfNotInCombat() end, 50 + self.savedVariables.showDelayBarAfterCombat*1000)
+			zo_callLater(function () WeaveDelays.HideDelayBarIfNotInCombat(counter) end, 50 + self.savedVariables.showDelayBarAfterCombat*1000)
 		end
 	end
 		
@@ -881,7 +882,14 @@ end
 -- ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 function WeaveDelays:LoadSavedVariables()
-	self.savedVariables = ZO_SavedVars:New("WeaveDelaysVars", 1, nil, self.DefaultSavedVars)
+	self.characterSavedVariables = ZO_SavedVars:NewCharacterNameSettings("WeaveDelaysVars", 1, nil, self.DefaultSavedVars)
+	if self.characterSavedVariables.accountWide then
+		self.accountWideSavedVariables = ZO_SavedVars:NewAccountWide("WeaveDelaysVars", 1, nil, self.DefaultSavedVars)
+		self.savedVariables = self.accountWideSavedVariables
+		self.savedVariables.accountWide = true
+	else
+		self.savedVariables = self.characterSavedVariables
+	end
 end
 
 function WeaveDelays.UpdateActionBarVisibility()
@@ -991,7 +999,7 @@ function WeaveDelays:Initialize()
 
 	local drawTier = DT_HIGH
 	local drawLevel = 5
-	local slot = ZO_ActionBar_GetButton(self.slotOffset+1).slot
+	local slot = ZO_ActionBar_GetButton(ACTION_BAR_FIRST_NORMAL_SLOT_INDEX+1).slot
 	local width,height = slot:GetDimensions()
 	height = height * self.controlBoxHeight
 	width  = width  * self.controlBoxWidth
@@ -1023,8 +1031,8 @@ function WeaveDelays:Initialize()
 	self.bottomLabel:SetHorizontalAlignment(TEXT_ALIGN_RIGHT)
 	self.bottomLabel:SetAnchor(TOPLEFT,slot,BOTTOMLEFT,-1.1*width,0)
 
-	for i = 1, self.numSlots do
-		slot = ZO_ActionBar_GetButton(self.slotOffset+i).slot
+	for i = 1, ACTION_BAR_SLOTS_PER_PAGE do
+		slot = ZO_ActionBar_GetButton(ACTION_BAR_FIRST_NORMAL_SLOT_INDEX+i).slot
 		
 		width,height = slot:GetDimensions()
 		height = height * self.controlBoxHeight
@@ -1180,7 +1188,9 @@ function WeaveDelays:Initialize()
 		
 		WEAVEDELAYSBAR2BG:SetAlpha(self.savedVariables.abilityRecastBarAlpha)
 	end
-
+	
+	self.UpdateUIcustomizations()
+	
 	self.UpdateDelayBarVisibility()
 	self.UpdateActionBarVisibility()
 	
@@ -1193,12 +1203,17 @@ function WeaveDelays:Initialize()
 	end
 end
 
+function WeaveDelays.UpdateUIcustomizations()
+	WEAVEDELAYSBARBG:SetEdgeColor(self.savedVariables.delayBarFrameR,self.savedVariables.delayBarFrameG,self.savedVariables.delayBarFrameB,self.savedVariables.delayBarFrameA)
+	WEAVEDELAYSBAR2BG:SetEdgeColor(self.savedVariables.recastBarFrameR,self.savedVariables.recastBarFrameG,self.savedVariables.recastBarFrameB,self.savedVariables.recastBarFrameA)
+end
+
 function WeaveDelays.repositionHealthBar()
 
 	if self.savedVariables.compatibilityRepositionDefaultUIHealthBar then
 	
 		local raiseBy = self.savedVariables.compatibilityRaiseDefaultUIHealthBar		
-		local slot = ZO_ActionBar_GetButton(self.slotOffset+1).slot
+		local slot = ZO_ActionBar_GetButton(ACTION_BAR_FIRST_NORMAL_SLOT_INDEX+1).slot
 		local width,height = slot:GetDimensions()
 		
 		if not self.banditsFound then
@@ -1296,6 +1311,21 @@ function WeaveDelays.InitializeMenu()
 		type = "header",
 		name = "WeaveDelays",
 		width = "full",
+	},
+	{
+		type = "checkbox",
+		name = "Account wide settings",
+		tooltip = "",
+		getFunc = function()
+			return self.savedVariables.accountWide
+		end,
+		setFunc = function(value)
+			self.characterSavedVariables.accountWide = value
+			self.savedVariables.accountWide = value
+		end,
+		width = "full",
+		default = false,
+		requiresReload = true,
 	},
 	{
 		type = "description",
@@ -1404,6 +1434,19 @@ function WeaveDelays.InitializeMenu()
 		width = "full",
 		default = false,
 		requiresReload = true,
+	},
+	{
+	  type = "colorpicker",
+	  name = "Frame color",
+	  disabled = function()
+		return (not self.savedVariables.showDelayBar)
+	  end,
+	  getFunc = function() return self.savedVariables.delayBarFrameR,self.savedVariables.delayBarFrameG,self.savedVariables.delayBarFrameB,self.savedVariables.delayBarFrameA end,	
+	  setFunc = function(r,g,b,a) 
+		self.savedVariables.delayBarFrameR,self.savedVariables.delayBarFrameG,self.savedVariables.delayBarFrameB,self.savedVariables.delayBarFrameA = r, g, b, a 
+		WeaveDelays.UpdateUIcustomizations()
+		end,
+	  width = "full",
 	},
 	{
 		type = "slider",
@@ -1538,6 +1581,9 @@ function WeaveDelays.InitializeMenu()
 		end,
 		setFunc = function(value)
 			self.savedVariables.showDelayBarOnlyInCombat = value
+			if value then
+				WeaveDelays.HideDelayBarIfNotInCombat(9999999)
+			end
 		end,
 		width = "full",
 		default = false,
@@ -1625,7 +1671,7 @@ function WeaveDelays.InitializeMenu()
 		max = 1000,
 		step = 50,
 		disabled = function()
-			return (not self.savedVariables.abilityRecastBarUpdateInterval)
+			return (not self.savedVariables.showAbilityRecastBar)
 		end,
 		getFunc = function()
 			return self.savedVariables.abilityRecastBarUpdateInterval
@@ -1638,6 +1684,20 @@ function WeaveDelays.InitializeMenu()
 		width = "full",
 		default = 200,
 		requiresReload = false,
+	},
+
+	{
+	  type = "colorpicker",
+	  name = "Frame color",
+	  disabled = function()
+		return (not self.savedVariables.showAbilityRecastBar)
+	  end,
+	  getFunc = function() return self.savedVariables.recastBarFrameR,self.savedVariables.recastBarFrameG,self.savedVariables.recastBarFrameB,self.savedVariables.recastBarFrameA end,	
+	  setFunc = function(r,g,b,a) 
+		self.savedVariables.recastBarFrameR,self.savedVariables.recastBarFrameG,self.savedVariables.recastBarFrameB,self.savedVariables.recastBarFrameA = r, g, b, a 
+		WeaveDelays.UpdateUIcustomizations()
+		end,
+	  width = "full",
 	},
 	{
 		type = "slider",
@@ -1667,6 +1727,9 @@ function WeaveDelays.InitializeMenu()
 		choicesValues = fontFaceList,
 		scrollable = true,
 		sort = "name-up",
+		disabled = function()
+			return (not self.savedVariables.showAbilityRecastBar)
+		end,
 		getFunc = function() return (self.savedVariables.abilityRecastBarFontFace or "ZoFontGamepad25") end,
 		setFunc = function( choice )
 			self.savedVariables.abilityRecastBarFontFace = choice
