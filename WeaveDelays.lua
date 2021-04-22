@@ -4,45 +4,43 @@ local self = WeaveDelays
 
 self.name                = 'WeaveDelays'
 self.slash               = "/weavedelays"
-self.version             = "0.6.1"
-self.DefaultSavedVars    = {["accountWide"]=false,["delayBarOffsetX"]=300,["delayBarOffsetY"]=400,["delayBarAlpha"]=0.9,["delayBar2OffsetX"]=300,["delayBar2OffsetY"]=500,["numDelayBarSlots"]=10,["numDelayBarRows"]=1,["showDelayBar"]=true,["showAbilityRecastBar"]=false,["showSkillsInDelayBar"]=true,["showDelayBarOnlyInCombat"]=false,["showDelayBarAfterCombat"]=10,["unlockUI"]=false,["showActionBarAddon"]=true,["showActionBarUptimes"]=true,["abilityRecastBarFontFace"]="ZoFontGamepad25",["abilityRecastBarNumSlots"]=10,["fontFaceList"]={},["actionBarFontFace"]="ZoFontGameSmall",["delayBarFontFace"]="ZoFontGameSmall",["delayBarPalette"]="greenred",["abilityDurations"]={[20660]=14000,[20779]=20000,[20930]=14000,[21729]=14000,[21765]=6000,[22240]=20000,[22095]=10000,[22259]=12000,[23205]=10000,[23213]=23000,[23231]=15000,[24165]=40000,[24328]=6000,[26768]=10000,[26869]=10000,[32673]=6000,[32710]=18000,[32853]=15000,[35434]=20000,[36049]=12000,[36891]=20000,[36935]=20000,[36957]=10000,[36967]=20000,[38660]=10000,[38689]=14000,[38695]=10000,[38839]=10000,[38906]=10000,[39053]=10000,[39073]=10000,[39095]=23000,[39475]=15000,[40058]=12000,[40079]=8000,[40094]=8000,[40317]=10000,[40328]=10000,[40382]=18000,[40452]=12000,[40457]=12000,[40465]=16000,[41958]=30000,[42028]=10000,[42038]=8000,[50079]=10000,[61500]=8000,[61919]=40000,[61927]=60000,[86019]=6500,[86031]=10000,[86058]=25000,[103706]=36000,[117850]=10000,[118008]=12000,[118726]=16000},["textLightAttackMissed"]="M",["textLightAttackDisappeared"]="X",["textLightAttackQueued"]="Q",["textBashed"]="B",["abilityRecastBarAlpha"]=0.9,["abilityRecastBarUpdateInterval"]=200,["compatibilityRaiseDefaultUIHealthBar"]=0,["compatibilityRepositionDefaultUIHealthBar"]=true,["compatibilityDetectBandits"]=true,["compatibilityDetectADR"]=true,["compatibilityDetectFAB"]=true,["actionBarRaiseTopBar"]=0,["showActionBarBottomBar"]=true,["frontBarSkills"]={nil,nil,nil,nil,nil,nil},["backBarSkills"]={nil,nil,nil,nil,nil,nil},["delayBarFrameR"]=0.8,["delayBarFrameG"]=0.8,["delayBarFrameB"]=0.8,["delayBarFrameA"]=1.0,["recastBarFrameR"]=0.8,["recastBarFrameG"]=0.8,["recastBarFrameB"]=1.0,["recastBarFrameA"]=1.0}
+self.version             = "0.7.2"
+self.DefaultSavedVars    = {["accountWide"]=false,["delayBarOffsetX"]=300,["delayBarOffsetY"]=400,["delayBarAlpha"]=0.9,["delayBar2OffsetX"]=300,["delayBar2OffsetY"]=500,["numDelayBarSlots"]=10,["numDelayBarRows"]=1,["showDelayBar"]=true,["showAbilityRecastBar"]=false,["showSkillsInDelayBar"]=true,["showDelayBarOnlyInCombat"]=false,["showDelayBarAfterCombat"]=10,["unlockUI"]=false,["showActionBarAddon"]=true,["showActionBarUptimes"]=true,["abilityRecastBarFontFace"]="ZoFontGamepad25",["abilityRecastBarNumSlots"]=10,["fontFaceList"]={},["actionBarFontFace"]="ZoFontGameSmall",["delayBarFontFace"]="ZoFontGameSmall",["delayBarPalette"]="greenred",["abilityDurations"]={[20660]=14000,[20779]=20000,[20930]=14000,[21729]=14000,[21765]=6000,[22240]=20000,[22095]=10000,[22259]=12000,[23205]=10000,[23213]=23000,[23231]=15000,[24165]=40000,[24328]=6000,[26768]=10000,[26869]=10000,[32673]=6000,[32710]=18000,[32853]=15000,[35434]=20000,[36049]=12000,[36891]=20000,[36935]=20000,[36957]=10000,[36967]=20000,[38660]=10000,[38689]=14000,[38695]=10000,[38839]=10000,[38906]=10000,[39053]=10000,[39073]=10000,[39095]=23000,[39475]=15000,[40058]=12000,[40079]=8000,[40094]=8000,[40317]=10000,[40328]=10000,[40382]=18000,[40452]=12000,[40457]=12000,[40465]=16000,[41958]=30000,[42028]=10000,[42038]=8000,[50079]=10000,[61500]=8000,[61919]=40000,[61927]=60000,[86019]=6500,[86031]=10000,[86058]=25000,[103706]=36000,[117850]=10000,[118008]=12000,[118726]=16000},["textLightAttackMissed"]="M",["textLightAttackDisappeared"]="X",["textLightAttackQueued"]="Q",["textBashed"]="B",["abilityRecastBarAlpha"]=0.9,["abilityRecastBarUpdateInterval"]=200,["compatibilityRaiseDefaultUIHealthBar"]=0,["compatibilityRepositionDefaultUIHealthBar"]=true,["compatibilityDetectBandits"]=true,["compatibilityDetectADR"]=true,["compatibilityDetectFAB"]=true,["actionBarRaiseTopBar"]=0,["showActionBarBottomBar"]=true,["frontBarSkills"]={nil,nil,nil,nil,nil,nil},["backBarSkills"]={nil,nil,nil,nil,nil,nil},["delayBarFrameR"]=0.8,["delayBarFrameG"]=0.8,["delayBarFrameB"]=0.8,["delayBarFrameA"]=1.0,["recastBarFrameR"]=0.8,["recastBarFrameG"]=0.8,["recastBarFrameB"]=1.0,["recastBarFrameA"]=1.0,["itemSetMechanicalAcuity"]=true,["acuityFrameR"]=0.1,["acuityFrameG"]=0.1,["acuityFrameB"]=0.9,["acuityFrameA"]=1.0}
 self.displayTimeMax      = 999
 self.displayTimeMin      = -99.
 self.historySize 	     = 99999
 self.historySizeInCombat = 5
 self.playerName          = GetRawUnitName("player")
-
-self.inCombat           = false
-self.startCombatSlotId  = -1
-self.startCombattime    = -1
-self.lastLAtime 	    = 0
-self.lastSkillStartTime = 0
-self.lastSkillEndTime   = 0
-self.lastSkillSlotId    = 0
-self.lastSkillBarIdx    = 0
-self.skillBarIdx        = 0
-self.skillBarIdx0Id     = -1
-self.skillsSinceLastLA  = 0
-self.banditsFound       = false
-self.actionDurationReminderFound = false
-self.fancyActionBarFound = false
+self.visible             = false
 self.abilityRecastBarSpammableText = " -"
-self.combatCounter = 0
 
+-- combat
+self.inCombat           = false
+self.combatCounter      = 0
+self.lastSkillTime      = GetGameTimeMilliseconds()
+self.frontBarSkills     = {}
+self.backBarSkills      = {}
+
+-- compatibility
+self.banditsFound                = false
+self.actionDurationReminderFound = false
+self.fancyActionBarFound         = false
+
+-- UI
 self.controlRightLabelOffsetX   = 0.6
 self.controlBoxHeight           = 0.33
 self.controlBoxWidth            = 0.95
 self.controlTopLabelOffsetY     = -3
 self.controlRightLabelOffsetY   = -4
 
-self.frontBarSkills = {}
-self.backBarSkills = {}
-
-self.visible = false
-
+-- fixes
 self.textureCache = {}
-self.textureCache[114716] = "/esoui/art/icons/ability_sorcerer_thunderstomp_proc.dds"
-	
+self.textureCache[114716] = "/esoui/art/icons/ability_sorcerer_thunderstomp_proc.dds" -- crystal fragments
+self.textureCache[61930]  = "/esoui/art/icons/ability_rogue_058.dds"                  -- assassins will
+
+-- constants
+self.abilityIdBash = 21970
+
 self.abilityPriorities = {
 	[117850] = 100,
 	[39053] = 1000,
@@ -211,23 +209,8 @@ end
 
 function WeaveDelays.OnReticleHiddenUpdate()
 	WeaveDelays.UpdateDelayBarVisibility()
-		--if self.savedVariables.showDelayBar then
-		--	WEAVEDELAYSBAR:SetHidden(IsReticleHidden())
-		--end
-		--if self.savedVariables.showAbilityRecastBar then
-		--	WEAVEDELAYSBAR2:SetHidden(IsReticleHidden())
-		--end
-	--else
-		--if self.savedVariables.showDelayBar then
-		--	WEAVEDELAYSBAR:SetHidden(false)
-		--end
-		--if self.savedVariables.showAbilityRecastBar then
-		--	WEAVEDELAYSBAR2:SetHidden(false)
-		--end
-	--	WeaveDelays.UpdateDelayBarVisibility()
-	--end
-end
 
+end
 
 function WeaveDelays.updateAbilityRecastBarFontFace()
 	local ctl
@@ -439,7 +422,6 @@ end
 function WeaveDelays.UpdateActionBar(fullCombat)
 
 	-- actionBar
-	--local historySize = self.historySizeInCombat
 	local historySize = self.savedVariables.numDelayBarSlots * self.savedVariables.numDelayBarRows
 	if fullCombat ~= nil and fullCombat then
 		historySize = self.historySize
@@ -458,9 +440,7 @@ function WeaveDelays.UpdateActionBar(fullCombat)
 		table.insert(missedLightAttacks, 0)
 		table.insert(missedLightAttacksAfterSkill, 0)
 	end
-	
-	-- {skillIndex, boundID, 0, lightAttackRegistered, lightAttackConfirmed, lightAttackQueued, skillCastTime, activeBarIndex}
-	
+		
 	-- analysis
 	for i=1,#combos do
 		local combo = combos[i]
@@ -487,14 +467,10 @@ function WeaveDelays.UpdateActionBar(fullCombat)
 		self.slotTop2LeftLabel[i]:SetText(self.FormatTimePercent(uptime))
 		
 		local meanDelay, n_total = self.log.getMean(delays[i], #delays[i])
-		local meanDelayFormatted = self.FormatTimeMilliseconds(self.ClipRange(meanDelay, self.displayTimeMin, self.displayTimeMax))
-		self.slotTopLeftLabel[i]:SetText(meanDelayFormatted)
+		self.slotTopLeftLabel[i]:SetText(self.FormatTimeMilliseconds(self.ClipRange(meanDelay, self.displayTimeMin, self.displayTimeMax)))
 		
-		local missedLightAttacksFormatted = tostring(missedLightAttacks[i])
-		self.slotTopRightLabel[i]:SetText(missedLightAttacksFormatted)
-		
-		local missedLightAttacksAfterSkillFormatted = tostring(missedLightAttacksAfterSkill[i])
-		self.slotBottomRightLabel[i]:SetText(missedLightAttacksAfterSkillFormatted)
+		self.slotTopRightLabel[i]:SetText(tostring(missedLightAttacks[i]))
+		self.slotBottomRightLabel[i]:SetText(tostring(missedLightAttacksAfterSkill[i]))
 		
 		self.slotBottomLeftLabel[i]:SetText("")
 		
@@ -557,17 +533,11 @@ function WeaveDelays.UpdateDelayBar()
 				
 				if lightAttackMissed ~= nil and lightAttackMissed then
 					barMarker:SetColor(1.0,1.0,1.0,0.0)
-					t = 1000
 				else
 					barMarker:SetColor(1.0,1.0,1.0,1.0)
 				end
 				
-				if t < 1 then
-					t = 1
-				end
-				if t > 950 then
-					t = 950
-				end
+				t = math.max(math.min(t,950),1)
 				
 				if lightAttackMissed ~= nil and lightAttackMissed then
 					t = 1000
@@ -579,10 +549,7 @@ function WeaveDelays.UpdateDelayBar()
 					barBox:SetColor(1.0,1.0,1.0,0.1)
 				end
 				
-				if t > 450 then
-					t = 450
-				end
-				barMarker:SetAnchor(TOPLEFT, barBox, TOPLEFT, math.floor(t/10.0), -4)
+				barMarker:SetAnchor(TOPLEFT, barBox, TOPLEFT, math.floor(math.min(t,450)/10.0), -4)
 				
 				if self.savedVariables.showSkillsInDelayBar then
 					local boundId  = combo[2]
@@ -600,6 +567,27 @@ function WeaveDelays.UpdateDelayBar()
 			end
 		end
 	end
+end
+
+function WeaveDelays.GetRemainingGlobalCooldownMilliseconds()
+	return 1000 - zo_min(GetGameTimeMilliseconds() - self.lastSkillTime, 1000)
+end
+
+-- t = gametime in seconds
+function WeaveDelays.AcuityProcIsActiveAt(t)
+	if self.savedVariables.itemSetMechanicalAcuity then
+		-- buff active
+		if self.acuityProcBeginTime ~= nil and self.acuityProcEndTime ~= nil then
+			if t > self.acuityProcBeginTime and t < self.acuityProcEndTime then
+				return true
+			end
+		end
+		-- buff will be activated again after direct damage
+		if self.acuityProcCooldownEndTime ~= nil and t > self.acuityProcCooldownEndTime and t < self.acuityProcCooldownEndTime + 5.0 then
+			return true
+		end
+	end
+	return false
 end
 
 function WeaveDelays.UpdateAbilityRecastBar()
@@ -621,6 +609,8 @@ function WeaveDelays.UpdateAbilityRecastBar()
 	end
 	table.sort(abilitiesSortedByPriority, function(a,b) return a[2] < b[2] end)
 	
+	local minimumTimeToNextCast = self.GetRemainingGlobalCooldownMilliseconds()
+
 	for i,p in ipairs(abilitiesSortedByPriority) do
 		abilityId, abilityTimeout = unpack(p)
 		
@@ -628,6 +618,7 @@ function WeaveDelays.UpdateAbilityRecastBar()
 		if abilitiesTimeoutPassed[abilityId] == nil then
 			local abilityIcon  = WINDOW_MANAGER:GetControlByName('WEAVEDELAYSBAR2S'..abilityIndex)
 			local abilityTimer = WINDOW_MANAGER:GetControlByName('WEAVEDELAYSBAR2T'..abilityIndex)
+			local abilityFrame = WINDOW_MANAGER:GetControlByName('WEAVEDELAYSBAR2B'..abilityIndex)
 			
 			local timeToCast = abilityTimeout-gameTime
 			local t0 = timeToCast-(abilityIndex-1)*1000
@@ -637,12 +628,19 @@ function WeaveDelays.UpdateAbilityRecastBar()
 				abilityIcon:SetColor(1.0,1.0,1.0,0.2)
 				abilityTimer:SetColor(1.0,1.0,1.0,1.0)
 				abilityTimer:SetText(self.abilityRecastBarSpammableText)
+				-- TODO: estimate real delay between skills and time of next cast
+				if self.AcuityProcIsActiveAt((gameTime+minimumTimeToNextCast)*0.001 + (abilityIndex-1)) then
+					abilityFrame:SetEdgeColor(self.savedVariables.acuityFrameR,self.savedVariables.acuityFrameG,self.savedVariables.acuityFrameB,self.savedVariables.acuityFrameA)
+				else
+					abilityFrame:SetEdgeColor(1.0,1.0,1.0,0.0)
+				end
 				abilityIndex = abilityIndex + 1
 				if abilityIndex > self.savedVariables.abilityRecastBarNumSlots then 
 					break
 				end
 				abilityIcon  = WINDOW_MANAGER:GetControlByName('WEAVEDELAYSBAR2S'..abilityIndex)
 				abilityTimer = WINDOW_MANAGER:GetControlByName('WEAVEDELAYSBAR2T'..abilityIndex)
+				abilityFrame = WINDOW_MANAGER:GetControlByName('WEAVEDELAYSBAR2B'..abilityIndex)
 				t0 = t0 - 1000
 			end
 			if abilityIndex > self.savedVariables.abilityRecastBarNumSlots then 
@@ -659,19 +657,36 @@ function WeaveDelays.UpdateAbilityRecastBar()
 					abilityTimer:SetText(""..math.floor((timeToCast)*0.01)*0.1)
 					abilityTimer:SetColor(1.0,1.0,1.0,1.0)
 				end
+				
+				-- TODO: estimate real delay between skills and time of next cast
+				if self.AcuityProcIsActiveAt((gameTime+minimumTimeToNextCast)*0.001 + (abilityIndex-1)) then
+					abilityFrame:SetEdgeColor(self.savedVariables.acuityFrameR,self.savedVariables.acuityFrameG,self.savedVariables.acuityFrameB,self.savedVariables.acuityFrameA)
+				else
+					abilityFrame:SetEdgeColor(1.0,1.0,1.0,0.0)
+				end
+			
 				abilityIndex = abilityIndex + 1
 			end
+			
+
 		end
 		if abilityIndex > self.savedVariables.abilityRecastBarNumSlots then 
 			break
 		end
 	end
-	while abilityIndex < self.savedVariables.abilityRecastBarNumSlots do
+	while abilityIndex <= self.savedVariables.abilityRecastBarNumSlots do
 		local abilityIcon  = WINDOW_MANAGER:GetControlByName('WEAVEDELAYSBAR2S'..abilityIndex)
 		local abilityTimer = WINDOW_MANAGER:GetControlByName('WEAVEDELAYSBAR2T'..abilityIndex)
+		local abilityFrame = WINDOW_MANAGER:GetControlByName('WEAVEDELAYSBAR2B'..abilityIndex)
 		abilityIcon:SetTexture(nil)
 		abilityIcon:SetColor(1.0,1.0,1.0,0.1)
 		abilityTimer:SetText("")
+		-- TODO: estimate real delay between skills and time of next cast
+		if self.AcuityProcIsActiveAt((gameTime+minimumTimeToNextCast)*0.001 + (abilityIndex-1)) then
+			abilityFrame:SetEdgeColor(self.savedVariables.acuityFrameR,self.savedVariables.acuityFrameG,self.savedVariables.acuityFrameB,self.savedVariables.acuityFrameA)
+		else
+			abilityFrame:SetEdgeColor(1.0,1.0,1.0,0.0)
+		end
 		abilityIndex = abilityIndex + 1
 	end
 end
@@ -690,11 +705,10 @@ function WeaveDelays.OnCombatEvent(eventCode,  result, isError,  abilityName,  a
 			self.log.flagLightAttackQueued()
 		end
 	end
-	if abilityActionSlotType == ACTION_SLOT_TYPE_BLOCK and abilityId == 21970 and (result == ACTION_RESULT_DAMAGE or result == ACTION_RESULT_CRITICAL_DAMAGE) and sourceName == self.playerName then
+	if abilityActionSlotType == ACTION_SLOT_TYPE_BLOCK and abilityId == self.abilityIdBash and (result == ACTION_RESULT_DAMAGE or result == ACTION_RESULT_CRITICAL_DAMAGE) and sourceName == self.playerName then
 		self.log.confirmBash()
 		self.Update()
 	end
-	--d(abilityActionSlotType.. " "..abilityName.. " "..abilityId.. " "..damageType.. " "..result)
 end
 
 function WeaveDelays.EventEffectChanged(eventCode, changeType, effectSlot, effectName, unitTag, beginTime, endTime, stackCount, iconName, buffType, effectType, abilityType, statusEffectType, unitName, unitId, abilityId, sourceType)
@@ -721,30 +735,28 @@ function WeaveDelays.EventEffectChanged(eventCode, changeType, effectSlot, effec
 end
 
 function WeaveDelays.playerActionSlotAbilityUsed(e, slotId)
+	local t = GetGameTimeMilliseconds()
+	self.lastSkillTime = t
 	self.log.slotUsed(slotId)
 	if self.inCombat then
 		self.Update()
 	end
 	local abilityId = GetSlotBoundId(slotId)
 	if self.savedVariables.abilityDurations[abilityId] ~= nil and self.savedVariables.abilityDurations[abilityId] > 0 then
-		self.trackedAbilities[abilityId] = {GetGameTimeMilliseconds() + self.savedVariables.abilityDurations[abilityId], self.savedVariables.abilityDurations[abilityId]}
+		self.trackedAbilities[abilityId] = {t + self.savedVariables.abilityDurations[abilityId], self.savedVariables.abilityDurations[abilityId]}
 	end
+
 end
 
-function WeaveDelays.updateBarAssignement(activeWeaponPair)
-	if activeWeaponPair == 1 then
-		self.frontBarSkills = {}
-		for i=0,5 do
-			table.insert(self.frontBarSkills, GetSlotBoundId(3+i))
-		end
-		self.savedVariables.frontBarSkills = self.frontBarSkills
-	elseif activeWeaponPair == 2 then
-		self.backBarSkills = {}
-		for i=0,5 do
-			table.insert(self.backBarSkills, GetSlotBoundId(3+i))
-		end
-		self.savedVariables.backBarSkills = self.backBarSkills
+function WeaveDelays.UpdateBarAssignement()
+	self.frontBarSkills = {}
+	self.backBarSkills = {}
+	for i=1,ACTION_BAR_SLOTS_PER_PAGE do
+		table.insert(self.frontBarSkills, GetSlotBoundId(ACTION_BAR_FIRST_NORMAL_SLOT_INDEX+i, HOTBAR_CATEGORY_PRIMARY))
+		table.insert(self.backBarSkills, GetSlotBoundId(ACTION_BAR_FIRST_NORMAL_SLOT_INDEX+i, HOTBAR_CATEGORY_BACKUP))
 	end
+	self.savedVariables.frontBarSkills = self.frontBarSkills
+	self.savedVariables.backBarSkills = self.backBarSkills
 end
 
 function WeaveDelays.OnWeaponSwap(_, activeWeaponPair, locked)
@@ -755,12 +767,10 @@ function WeaveDelays.OnWeaponSwap(_, activeWeaponPair, locked)
 	else
 		self.UpdateActionBar(true)
 	end
-	if activeWeaponPair == 1 and #self.frontBarSkills < 1 then
-		self.updateBarAssignement(activeWeaponPair)
-	elseif activeWeaponPair == 2 and #self.backBarSkills < 1 then
-		self.updateBarAssignement(activeWeaponPair)
+	if #self.frontBarSkills < 1 or #self.backBarSkills < 1 then
+		self.UpdateBarAssignement()
 	end
-	
+
 	if self.fancyActionBarFound then
 		local slot = ZO_ActionBar_GetButton(ACTION_BAR_FIRST_NORMAL_SLOT_INDEX+1).slot
 		local fwidth,fheight = slot:GetDimensions()
@@ -875,7 +885,34 @@ function WeaveDelays.GetAbilityIndicesFromAbilityId(abilityId)
 		return false
 	end
 end
-		
+
+function WeaveDelays.PlayerIsWearingAcuity()
+	local numEquipped = 0
+	_, _, _, numEquipped = GetItemLinkSetInfo("|H1:item:131165:370:50:26582:370:50:0:0:0:0:0:0:0:0:1:26:1:1:0:9400:0|h|h", true)
+	return numEquipped>2
+end
+
+function WeaveDelays.DetectAcuity()
+	if self.PlayerIsWearingAcuity() then
+		EVENT_MANAGER:RegisterForEvent(self.name.."AcuityProc",  EVENT_EFFECT_CHANGED, self.HandleAcuityProc)
+		EVENT_MANAGER:AddFilterForEvent(self.name.."AcuityProc", EVENT_EFFECT_CHANGED, REGISTER_FILTER_ABILITY_ID, 99204)
+		EVENT_MANAGER:AddFilterForEvent(self.name.."AcuityProc", EVENT_EFFECT_CHANGED, REGISTER_FILTER_UNIT_TAG, "player")
+	else
+		EVENT_MANAGER:UnregisterForEvent(self.name.."AcuityProc", EVENT_EFFECT_CHANGED)
+		self.acuityProcBeginTime = nil
+		self.acuityProcEndTime = nil
+	end
+end
+
+function WeaveDelays.HandleAcuityProc(_, changeType, _, _, _, beginTime, endTime)
+	if changeType == EFFECT_RESULT_GAINED then
+		self.acuityProcBeginTime = beginTime
+		self.acuityProcEndTime = endTime
+	elseif changeType == EFFECT_RESULT_FADED then
+		self.acuityProcCooldownEndTime = GetGameTimeMilliseconds()/1000 + 16
+	end
+end
+
 
 -- ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 --                 init
@@ -964,10 +1001,7 @@ function WeaveDelays:Initialize()
 	EVENT_MANAGER:RegisterForUpdate("WeaveDelaysUiLoop", self.savedVariables.abilityRecastBarUpdateInterval, self.UiLoop)
 
     ACTION_BAR_ASSIGNMENT_MANAGER:RegisterCallback("SlotUpdated", function(hotbarCategory, actionSlotIndex, isChangedByPlayer)
-		local weaponPair = self.log.getActiveWeaponPair()
-		if weaponPair ~= nil then
-			zo_callLater(function () self.updateBarAssignement(weaponPair) end, 500)
-		end
+		zo_callLater(function () self.UpdateBarAssignement() end, 500)
     end)
 
 	-- Controls
@@ -1168,32 +1202,44 @@ function WeaveDelays:Initialize()
 			end
 		end
 	end
-	
+
 	--- ability recast bar 
-	
+
 	if self.savedVariables.showAbilityRecastBar then
 		self.restoreDelayBar2Position()
 
 		local bg = WINDOW_MANAGER:GetControlByName('WEAVEDELAYSBAR2BG')
 		for i=1, self.savedVariables.abilityRecastBarNumSlots do
-			ctl3 = WINDOW_MANAGER:CreateControl("WEAVEDELAYSBAR2S"..i, bg, CT_TEXTURE)
+		
+			local b = WINDOW_MANAGER:CreateControl("WEAVEDELAYSBAR2B"..i, bg, CT_BACKDROP)
+			
+			b:SetAnchor(TOPLEFT, bg, TOPLEFT, (i-1)*(w+m)+1, 5)
+			b:SetDimensions(50, 50)
+			b:SetCenterColor(0, 0, 0, 0)
+			b:SetEdgeTexture('', 1, 1, 6)
+			b:SetEdgeColor(0, 0, 0, 0)
+			b:SetDrawLevel(1)
+			
+			ctl3 = WINDOW_MANAGER:CreateControl("WEAVEDELAYSBAR2S"..i, b, CT_TEXTURE)
 			ctl3:SetDimensions(50, 50)
-			ctl3:SetAnchor(TOPLEFT, bg, TOPLEFT, (i-1)*(w+m)+1, 5)
+			ctl3:SetAnchor(CENTER, b, CENTER, 0, 0)
 			ctl3:SetColor(1.0,1.0,1.0,0.1)
+			
 			ctl4 = WINDOW_MANAGER:CreateControl("WEAVEDELAYSBAR2T"..i, bg, CT_LABEL)
 			ctl4:SetDimensions(26, 26)
 			ctl4:SetAnchor(TOPLEFT, bg, TOPLEFT, (i-1)*(w+m)+16, 17)
+
 		end
 		self.updateAbilityRecastBarFontFace()
 		
 		WEAVEDELAYSBAR2BG:SetAlpha(self.savedVariables.abilityRecastBarAlpha)
 	end
-	
+
 	self.UpdateUIcustomizations()
-	
 	self.UpdateDelayBarVisibility()
 	self.UpdateActionBarVisibility()
-	
+	zo_callLater(function () self.UpdateBarAssignement() end, 500)
+
 	--- menu
 	self.InitializeMenu()
 
@@ -1201,6 +1247,13 @@ function WeaveDelays:Initialize()
 		local activeWeaponPair = GetActiveWeaponPairInfo()
 		WeaveDelays.OnWeaponSwap(nil, activeWeaponPair, false)
 	end
+
+
+	--- mechanical acuity set
+	zo_callLater(function () WeaveDelays.DetectAcuity()	 end, 1500)
+	EVENT_MANAGER:RegisterForEvent(self.name.."DetectAcuity", EVENT_INVENTORY_SINGLE_SLOT_UPDATE, self.DetectAcuity)
+	EVENT_MANAGER:AddFilterForEvent(self.name.."DetectAcuity", EVENT_INVENTORY_SINGLE_SLOT_UPDATE, REGISTER_FILTER_BAG_ID, BAG_WORN)
+
 end
 
 function WeaveDelays.UpdateUIcustomizations()
@@ -2110,6 +2163,40 @@ function WeaveDelays.InitializeMenu()
 			},
 		--}
 	--}
+	{
+		type = "header",
+		name = "Item sets and effects",
+		width = "full",
+	},			
+	{
+		type = "description",
+		text = "Enable/disable tracking of item/ability effects",
+		width = "full",
+	},
+	{
+		type = "checkbox",
+		name = "Mechanical acuity (set)",
+		getFunc = function()
+			return self.savedVariables.itemSetMechanicalAcuity
+		end,
+		setFunc = function(value)
+			self.savedVariables.itemSetMechanicalAcuity = value
+		end,
+		width = "full",
+		default = true,
+	},
+	{
+	  type = "colorpicker",
+	  name = "Mechanical acuity color",
+	  disabled = function()
+		return (not self.savedVariables.itemSetMechanicalAcuity)
+	  end,
+	  getFunc = function() return self.savedVariables.acuityFrameR,self.savedVariables.acuityFrameG,self.savedVariables.acuityFrameB,self.savedVariables.acuityFrameA end,	
+	  setFunc = function(r,g,b,a) 
+		self.savedVariables.acuityFrameR,self.savedVariables.acuityFrameG,self.savedVariables.acuityFrameB,self.savedVariables.acuityFrameA = r, g, b, a 
+		end,
+	  width = "full",
+	},
 	{
 		type = "header",
 		name = "Compatibility",

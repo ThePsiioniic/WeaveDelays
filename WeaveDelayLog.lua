@@ -332,6 +332,22 @@ function WeaveDelayLog.new()
 		end
 		
     end
+
+	-- can be used to correct abilityId logged at time of key press based on combat event occurring later
+	function self.updateAbilityIdMatchingTime(matchingTime, matchingTimeTolerance, abilityId, toAbilityId)
+		local n = #playerActions
+		while n > 0 do
+			local playerAction = playerActions[n]
+			if playerAction[1] < matchingTime - matchingTimeTolerance then
+				break
+			end
+			if playerAction[1] < matchingTime + matchingTimeTolerance and playerAction[4] == abilityId then
+				playerActions[n][4] = toAbilityId
+				break
+			end
+			n = n - 1
+		end
+	end
 		
 	-- combo format:
 	-- [1] skillIndex
