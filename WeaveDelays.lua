@@ -1211,6 +1211,7 @@ function WeaveDelays:Initialize()
 		
 		w = self.savedVariables.recastBarScale
 	    m = 2
+		n = self.savedVariables.abilityRecastBarNumSlots
 		WEAVEDELAYSBAR2:SetDimensions((w+m)*n+2, 1.08*w)
 
 		local bg = WINDOW_MANAGER:GetControlByName('WEAVEDELAYSBAR2BG')
