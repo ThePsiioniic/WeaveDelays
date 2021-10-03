@@ -416,7 +416,7 @@ function WeaveDelayLog.new()
 	-- [10] LA queued
 	-- [11] bash
     function self.slotUsed(slotId)
-		local t = GetGameTimeMilliseconds() 
+		local t = GetGameTimeMilliseconds()
 		local boundId = GetSlotBoundId(slotId)
 		local channeled, castTime, channelTime = GetAbilityCastInfo(boundId)
 		local activeTime = -1

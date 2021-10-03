@@ -4,7 +4,7 @@ local self = WeaveDelays
 
 self.name                = 'WeaveDelays'
 self.slash               = "/weavedelays"
-self.version             = "0.8.3"
+self.version             = "0.8.4"
 self.DefaultSavedVars    = {["accountWide"]=false,["delayBarOffsetX"]=300,["delayBarOffsetY"]=400,["delayBarAlpha"]=0.9,["delayBar2OffsetX"]=300,["delayBar2OffsetY"]=500,["numDelayBarSlots"]=10,["numDelayBarRows"]=1,["showDelayBar"]=true,["showAbilityRecastBar"]=false,["showSkillsInDelayBar"]=true,["showDelayBarOnlyInCombat"]=false,["showDelayBarAfterCombat"]=10,["unlockUI"]=false,["showActionBarAddon"]=true,["showActionBarUptimes"]=true,["abilityRecastBarFontFace"]="ZoFontGamepad25",["abilityRecastBarNumSlots"]=10,["fontFaceList"]={},["actionBarFontFace"]="ZoFontGameSmall",["delayBarFontFace"]="ZoFontGameSmall",["delayBarPalette"]="greenred",["abilityDurations"]={[20660]=14000,[20779]=20000,[20930]=14000,[21729]=14000,[21765]=6000,[22240]=20000,[22095]=10000,[22259]=12000,[23205]=10000,[23213]=23000,[23231]=15000,[24165]=40000,[24328]=6000,[26768]=10000,[26869]=10000,[32673]=6000,[32710]=18000,[32853]=15000,[35434]=20000,[36049]=12000,[36891]=20000,[36935]=20000,[36957]=10000,[36967]=20000,[38660]=10000,[38689]=14000,[38695]=10000,[38839]=10000,[38906]=10000,[39053]=10000,[39073]=10000,[39095]=23000,[39475]=15000,[40058]=12000,[40079]=8000,[40094]=8000,[40317]=10000,[40328]=10000,[40382]=18000,[40452]=12000,[40457]=12000,[40465]=16000,[41958]=30000,[42028]=10000,[42038]=8000,[50079]=10000,[61500]=8000,[61919]=40000,[61927]=60000,[86019]=6500,[86031]=10000,[86058]=25000,[103706]=36000,[117850]=10000,[118008]=12000,[118726]=16000},["textLightAttackMissed"]="M",["textLightAttackDisappeared"]="X",["textLightAttackQueued"]="Q",["textBashed"]="B",["abilityRecastBarAlpha"]=0.9,["abilityRecastBarUpdateInterval"]=200,["compatibilityRaiseDefaultUIHealthBar"]=0,["compatibilityRepositionDefaultUIHealthBar"]=true,["compatibilityDetectBandits"]=true,["compatibilityDetectADR"]=true,["compatibilityDetectFAB"]=true,["actionBarRaiseTopBar"]=0,["showActionBarBottomBar"]=true,["frontBarSkills"]={nil,nil,nil,nil,nil,nil},["backBarSkills"]={nil,nil,nil,nil,nil,nil},["delayBarFrameR"]=0.8,["delayBarFrameG"]=0.8,["delayBarFrameB"]=0.8,["delayBarFrameA"]=1.0,["recastBarFrameR"]=0.8,["recastBarFrameG"]=0.8,["recastBarFrameB"]=1.0,["recastBarFrameA"]=1.0,["itemSetMechanicalAcuity"]=true,["acuityFrameR"]=0.1,["acuityFrameG"]=0.1,["acuityFrameB"]=0.9,["acuityFrameA"]=1.0,["scale"]=50.0,["recastBarScale"]=50.0,["delayBarFrameThickness"]=1,["recastBarFrameThickness"]=1}
 self.displayTimeMax      = 999
 self.displayTimeMin      = -99.
@@ -1325,30 +1325,34 @@ function WeaveDelays.updateSkillsInMenu(p)
 	if p.data.name == self.name then
 		if #self.frontBarSkills > 0 then
 			for i=1,5 do
-				local tc = _G["weaveDelays_arb_fbT"..tostring(i)]
-				local sc = _G["weaveDelays_arb_fbS"..tostring(i)]
-				tc.texture:SetTexture(self.GetTextureFromAbilityId(self.frontBarSkills[i]))
-				if self.savedVariables.abilityDurations[self.frontBarSkills[i]] ~= nil then 
-					sc.slider:SetValue(self.savedVariables.abilityDurations[self.frontBarSkills[i]])
-					sc.slidervalue:SetText(self.savedVariables.abilityDurations[self.frontBarSkills[i]])
+				if self.frontBarSkills[i] ~= nil then
+					local tc = _G["weaveDelays_arb_fbT"..tostring(i)]
+					local sc = _G["weaveDelays_arb_fbS"..tostring(i)]
+					tc.texture:SetTexture(self.GetTextureFromAbilityId(self.frontBarSkills[i]))
+					if self.savedVariables.abilityDurations[self.frontBarSkills[i]] ~= nil then 
+						sc.slider:SetValue(self.savedVariables.abilityDurations[self.frontBarSkills[i]])
+						sc.slidervalue:SetText(self.savedVariables.abilityDurations[self.frontBarSkills[i]])
+					end
+					tc.texture:SetMouseEnabled(true)
+					tc.texture:SetHandler('OnMouseEnter',function(self) WeaveDelays.updateTooltip(self, WeaveDelays.frontBarSkills[i]) end)
+					tc.texture:SetHandler('OnMouseExit',function(self) WeaveDelays.updateTooltip(self, 0) end)
 				end
-				tc.texture:SetMouseEnabled(true)
-				tc.texture:SetHandler('OnMouseEnter',function(self) WeaveDelays.updateTooltip(self, WeaveDelays.frontBarSkills[i]) end)
-				tc.texture:SetHandler('OnMouseExit',function(self) WeaveDelays.updateTooltip(self, 0) end)
 			end
 		end
 		if #self.backBarSkills > 0 then
 			for i=1,5 do
-				local tc = _G["weaveDelays_arb_bbT"..tostring(i)]
-				local sc = _G["weaveDelays_arb_bbS"..tostring(i)]
-				tc.texture:SetTexture(self.GetTextureFromAbilityId(self.backBarSkills[i]))
-				if self.savedVariables.abilityDurations[self.backBarSkills[i]] ~= nil then 
-					sc.slider:SetValue(self.savedVariables.abilityDurations[self.backBarSkills[i]])
-					sc.slidervalue:SetText(self.savedVariables.abilityDurations[self.backBarSkills[i]])
+				if self.backBarSkills[i] ~= nil then
+					local tc = _G["weaveDelays_arb_bbT"..tostring(i)]
+					local sc = _G["weaveDelays_arb_bbS"..tostring(i)]
+					tc.texture:SetTexture(self.GetTextureFromAbilityId(self.backBarSkills[i]))
+					if self.savedVariables.abilityDurations[self.backBarSkills[i]] ~= nil then 
+						sc.slider:SetValue(self.savedVariables.abilityDurations[self.backBarSkills[i]])
+						sc.slidervalue:SetText(self.savedVariables.abilityDurations[self.backBarSkills[i]])
+					end
+					tc.texture:SetMouseEnabled(true)
+					tc.texture:SetHandler('OnMouseEnter',function(self) WeaveDelays.updateTooltip(self, WeaveDelays.backBarSkills[i]) end)
+					tc.texture:SetHandler('OnMouseExit',function(self) WeaveDelays.updateTooltip(self, 0) end)
 				end
-				tc.texture:SetMouseEnabled(true)
-				tc.texture:SetHandler('OnMouseEnter',function(self) WeaveDelays.updateTooltip(self, WeaveDelays.backBarSkills[i]) end)
-				tc.texture:SetHandler('OnMouseExit',function(self) WeaveDelays.updateTooltip(self, 0) end)
 			end
 		end
 	end
