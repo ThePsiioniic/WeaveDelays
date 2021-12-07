@@ -522,5 +522,13 @@ function WeaveDelayLog.new()
 		end
 	end
 	
+	function self.SetHighLatencyMode(enabled)
+	if enabled then
+		settings.lightAttackTimeout = 1600
+	else
+		settings.lightAttackTimeout = 1000
+	end
+end
+	
 	return self
 end
