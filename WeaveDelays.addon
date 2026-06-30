@@ -1,11 +1,12 @@
 ## Title: WeaveDelays
 ## Description: Shows delays between light attacks and skills in action bar
 ## Author: Psiioniic
-## Version: 0.8.5
-## APIVersion: 101031 101032
+## Version: 1.0.0
+## AddOnVersion: 100
+## APIVersion: 101050
 ## SavedVariables: WeaveDelaysVars
-## DependsOn: LibAddonMenu-2.0
-## OptionalDependsOn: BanditsUserInterface ActionDurationReminder FancyActionBar
+## DependsOn: LibHarvensAddonSettings>=20108
+## OptionalDependsOn:
 
 WeaveDelayLog.lua
 WeaveDelays.lua
