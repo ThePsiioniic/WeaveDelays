@@ -13,10 +13,8 @@ function WeaveDelayLog.new()
     local PA_IDX_BAR_INDEX    = 2
     local PA_IDX_SLOT_ID      = 3
     local PA_IDX_BOUND_ID     = 4
-    local PA_IDX_CHANNELED    = 5
     local PA_IDX_CAST_TIME    = 6
     local PA_IDX_CHANNEL_TIME = 7
-    -- [8] unused
     local PA_IDX_LA_CONFIRMED = 9
     local PA_IDX_LA_QUEUED    = 10
     local PA_IDX_BASH         = 11
@@ -31,25 +29,37 @@ function WeaveDelayLog.new()
 	settings.lightAttackTimeout = NORMAL_LATENCY_TIMEOUT_MS
 
 	local combatEndMarkerPosition = -1
+	local combatEndTime           = -1
 
-	-- this might register shortly after the first skill(s), so only remove everything until last combat end marker
+	local PRE_COMBAT_WINDOW_MS = 5000
+	-- the ending fight's last weave can register shortly after the combat
+	-- state event, past the marker; treat such stragglers as the old fight
+	local COMBAT_END_GRACE_MS  = 500
+
 	function self.startCombat()
-		if combatEndMarkerPosition > 0 then
-			local newPlayerActions = {}
-			for i=combatEndMarkerPosition+1,#playerActions do
+		local cutoff = GetGameTimeMilliseconds() - PRE_COMBAT_WINDOW_MS
+		local newPlayerActions = {}
+		for i = 1, #playerActions do
+			local t = playerActions[i][PA_IDX_TIME]
+			if i > combatEndMarkerPosition and t >= cutoff
+					and (combatEndTime < 0 or t > combatEndTime + COMBAT_END_GRACE_MS) then
 				table.insert(newPlayerActions, playerActions[i])
 			end
-			playerActions = newPlayerActions
-			combatEndMarkerPosition = -1
 		end
+		playerActions = newPlayerActions
+		combatEndMarkerPosition = -1
+		combatEndTime = -1
 	end
 
 	function self.endCombat()
 		combatEndMarkerPosition = #playerActions
+		combatEndTime = GetGameTimeMilliseconds()
 	end
 
 	function self.reset()
 		playerActions = {}
+		combatEndMarkerPosition = -1
+		combatEndTime = -1
 	end
 
     function self.registerAction(playerAction)
@@ -58,16 +68,6 @@ function WeaveDelayLog.new()
 		end
     end
 
-	-- combo format:
-	-- [1] skillIndex
-	-- [2] boundID
-	-- [3] delay
-	-- [4] lightAttackRegistered
-	-- [5] lightAttackConfirmed
-	-- [6] lightAttackQueued
-	-- [7] skillCastTime
-	-- [8] barIndex
-	-- [9] bashed
 	function self.getLastCombos(numCombos)
 		local combos = {}
 		local skillCastTime, skillIndex, boundID, lightAttackRegistered, lightAttackConfirmed, lightAttackQueued, duration, bashed = nil,0,0,false,false,false,0,false
@@ -100,29 +100,15 @@ function WeaveDelayLog.new()
 			end
 			n = n - 1
 		end
-		if #combos < numCombos then
-			if playerActions ~= nil and playerActions[n] ~= nil then
-				playerAction = playerActions[n]
-				combo = {skillIndex, boundID, 0, lightAttackRegistered, lightAttackConfirmed, lightAttackQueued, skillCastTime, playerAction[PA_IDX_BAR_INDEX], bashed}
-				table.insert(combos, combo)
-			end
+		if #combos < numCombos and skillCastTime ~= nil then
+			local barIdx = playerActions[1] ~= nil and playerActions[1][PA_IDX_BAR_INDEX] or 0
+			combo = {skillIndex, boundID, 0, lightAttackRegistered, lightAttackConfirmed, lightAttackQueued, skillCastTime, barIdx, bashed}
+			table.insert(combos, combo)
 		end
 
 		return combos
 	end
 
-	-- player action format:
-	-- [1] time
-	-- [2] activeBarIndex
-	-- [3] slotId
-	-- [4] boundId
-	-- [5] channeled
-	-- [6] castTime
-	-- [7] channelTime
-	-- [8] (unused)
-	-- [9] LA cast confirmed
-	-- [10] LA queued
-	-- [11] bash
     function self.slotUsed(slotId)
 		local t = GetGameTimeMilliseconds()
 		local boundId = GetSlotBoundId(slotId)
@@ -179,10 +165,10 @@ function WeaveDelayLog.new()
 	function self.weaponSwap(activeWeaponPair)
 		if skillBarIndex == nil then
 			if activeWeaponPair == 2 then
-				skillBarIndex = {[1]= 0, [2]= 1}
+				skillBarIndex = {[0]=0, [1]=0, [2]=1}
 				activeBarIndexReversed = false
 			else
-				skillBarIndex = {[1]= 1, [2]= 0}
+				skillBarIndex = {[0]=0, [1]=1, [2]=0}
 				activeBarIndexReversed = true
 			end
 		end

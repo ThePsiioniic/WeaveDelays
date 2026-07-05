@@ -7,6 +7,7 @@ local DELAY_CLAMP_MIN_MS         = 1
 local DELAY_MISSED_SENTINEL_MS   = 1000
 local RECENT_ACTION_THRESHOLD_MS = 100
 local HIDE_AFTER_COMBAT_GRACE_MS = 50
+local RELOAD_NOTICE_THROTTLE_MS  = 5000
 
 local COMBO_IDX_SKILL_INDEX     = 1
 local COMBO_IDX_BOUND_ID        = 2
@@ -18,9 +19,11 @@ local COMBO_IDX_SKILL_CAST_TIME = 7
 local COMBO_IDX_BAR_INDEX       = 8
 local COMBO_IDX_BASHED          = 9
 
+local prefix = "WEAVEDELAYSBAR"
+
 self.name             = 'WeaveDelays'
 self.slash            = "/weavedelays"
-self.version          = "1.0.0"
+self.version          = "1.0.3"
 self.DefaultSavedVars = {
 	["accountWide"]=false,
 	["delayBarOffsetX"]=300,
@@ -60,7 +63,8 @@ self.inCombat      = false
 self.combatCounter = 0
 
 -- UI
-self.barMarkerScale = 450
+self.barMarkerScale       = 450
+self.delayBarSlotControls = {}
 
 -- constants
 self.abilityIdBash = 21970
@@ -153,7 +157,7 @@ end
 --                 UI
 -- ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-function WeaveDelays_ToggleWindow()
+function WeaveDelays.ToggleWindow()
 	self.visible = not self.visible
 	if self.visible then
 		self.ShowDelayBar()
@@ -321,10 +325,11 @@ function WeaveDelays.UpdateDelayBar()
 	local gameTime   = GetGameTimeMilliseconds()
 
 	for i = 1, n do
-		local barBox        = WINDOW_MANAGER:GetControlByName('WEAVEDELAYSBARL'..i)
-		local barMarker     = WINDOW_MANAGER:GetControlByName('WEAVEDELAYSBARB'..i)
-		local barPicture    = WINDOW_MANAGER:GetControlByName('WEAVEDELAYSBARS'..i)
-		local barStatusFlag = WINDOW_MANAGER:GetControlByName('WEAVEDELAYSBARQ'..i)
+		local slotControls  = self.delayBarSlotControls[i]
+		local barBox        = slotControls ~= nil and slotControls.box or nil
+		local barMarker     = slotControls ~= nil and slotControls.marker or nil
+		local barPicture    = slotControls ~= nil and slotControls.picture or nil
+		local barStatusFlag = slotControls ~= nil and slotControls.statusFlag or nil
 
 		if barBox ~= nil then
 			if lastCombos[n+1-i] ~= nil then
@@ -412,8 +417,9 @@ end
 
 function WeaveDelays.OnCombatEvent(eventCode,  result, isError,  abilityName,  abilityGraphic,  abilityActionSlotType, sourceName, sourceType, targetName, targetType, hitValue,  powerType,  damageType, log, sourceUnitId, targetUnitId, abilityId, overflow)
 
+	if not self.inCombat then return end
 	if abilityActionSlotType == ACTION_SLOT_TYPE_LIGHT_ATTACK and sourceName == self.playerName then
-		if result == ACTION_RESULT_DAMAGE or result == ACTION_RESULT_CRITICAL_DAMAGE or results == ACTION_RESULT_HEAL or result == ACTION_RESULT_CRITICAL_HEAL then
+		if result == ACTION_RESULT_DAMAGE or result == ACTION_RESULT_CRITICAL_DAMAGE or result == ACTION_RESULT_HEAL or result == ACTION_RESULT_CRITICAL_HEAL then
 			self.log.confirmLightAttack()
 			self.Update()
 		elseif result == ACTION_RESULT_QUEUED then
@@ -435,7 +441,9 @@ end
 
 function WeaveDelays.OnWeaponSwap(_, activeWeaponPair, locked)
 	self.log.weaponSwap(activeWeaponPair)
-	self.UpdateDelayBar()
+	if self.inCombat then
+		self.UpdateDelayBar()
+	end
 end
 
 function WeaveDelays.OnPlayerCombatState(event, inCombat)
@@ -498,6 +506,7 @@ function WeaveDelays:Initialize()
 	EVENT_MANAGER:RegisterForEvent(self.name.."WeaponSwap", EVENT_ACTIVE_WEAPON_PAIR_CHANGED, self.OnWeaponSwap)
 	EVENT_MANAGER:RegisterForEvent(self.name.."PlayerCombatState", EVENT_PLAYER_COMBAT_STATE, self.OnPlayerCombatState)
 	EVENT_MANAGER:RegisterForEvent(self.name, EVENT_COMBAT_EVENT, self.OnCombatEvent)
+	EVENT_MANAGER:AddFilterForEvent(self.name, EVENT_COMBAT_EVENT, REGISTER_FILTER_SOURCE_COMBAT_UNIT_TYPE, COMBAT_UNIT_TYPE_PLAYER)
 	EVENT_MANAGER:RegisterForEvent(self.name.."Hide", EVENT_RETICLE_HIDDEN_UPDATE, self.OnReticleHiddenUpdate)
 	SCENE_MANAGER:RegisterCallback("SceneStateChanged", self.UpdateDelayBarVisibility)
 	EVENT_MANAGER:RegisterForEvent(self.name.."PlayerActivated", EVENT_PLAYER_ACTIVATED, self.UpdateDelayBarVisibility)
@@ -505,7 +514,7 @@ function WeaveDelays:Initialize()
 	ZO_CreateStringId("SI_BINDING_NAME_WD_TOGGLE", "Toggle WeaveDelays window")
 
 	--- delay bar
-	local bg = WINDOW_MANAGER:GetControlByName('WEAVEDELAYSBARBG')
+	local bg = WINDOW_MANAGER:GetControlByName(prefix..'BG')
 	local n = self.savedVariables.numDelayBarSlots
 	local r = self.savedVariables.numDelayBarRows
 	local w = self.savedVariables.scale
@@ -534,24 +543,30 @@ function WeaveDelays:Initialize()
 		local k=1
 		for j=1, r do
 			for i=1, n do
-				textureControl = WINDOW_MANAGER:CreateControl("WEAVEDELAYSBARL"..k, bg, CT_TEXTURE)
+				textureControl = WINDOW_MANAGER:CreateControl(prefix.."L"..k, bg, CT_TEXTURE)
 				textureControl:SetDimensions(w, math.ceil(w*0.28))
 				textureControl:SetAnchor(TOPLEFT, bg, TOPLEFT, (i-1)*(w+m)+1, math.max(math.ceil(w/10.0),1)+(j-1)*h)
 				textureControl:SetColor(1.0,1.0,1.0,0.2)
-				markerTextureControl = WINDOW_MANAGER:CreateControl("WEAVEDELAYSBARB"..k, bg, CT_TEXTURE)
+				markerTextureControl = WINDOW_MANAGER:CreateControl(prefix.."B"..k, bg, CT_TEXTURE)
 				markerTextureControl:SetDimensions(math.max(math.ceil(w/10.0),1), math.ceil(w*0.4))
 				markerTextureControl:SetAnchor(TOPLEFT, bg, TOPLEFT, (i-1)*(w+m)+1, math.max(math.ceil(w*0.02),1)+(j-1)*h)
 				markerTextureControl:SetColor(1.0,1.0,1.0,0.3)
 				if self.savedVariables.showSkillsInDelayBar then
-					skillTextureControl = WINDOW_MANAGER:CreateControl("WEAVEDELAYSBARS"..k, bg, CT_TEXTURE)
+					skillTextureControl = WINDOW_MANAGER:CreateControl(prefix.."S"..k, bg, CT_TEXTURE)
 					skillTextureControl:SetDimensions(w, w)
 					skillTextureControl:SetAnchor(TOPLEFT, bg, TOPLEFT, (i-1)*(w+m)+1, math.max(math.ceil(w*0.4),1)+(j-1)*h)
 					skillTextureControl:SetColor(1.0,1.0,1.0,0.1)
 				end
-				labelControl = WINDOW_MANAGER:CreateControl("WEAVEDELAYSBARQ"..k, bg, CT_LABEL)
+				labelControl = WINDOW_MANAGER:CreateControl(prefix.."Q"..k, bg, CT_LABEL)
 				labelControl:SetFont(self.savedVariables.delayBarFontFace)
 				labelControl:SetDimensions(math.ceil(w*0.28), math.ceil(w*0.28))
 				labelControl:SetAnchor(TOPLEFT, bg, TOPLEFT, (i-1)*(w+m)+math.max(math.ceil(w*0.7),1), math.max(math.ceil(w*0.08),1)+(j-1)*h)
+				self.delayBarSlotControls[k] = {
+					box        = textureControl,
+					marker     = markerTextureControl,
+					picture    = skillTextureControl,
+					statusFlag = labelControl,
+				}
 				k = k+1
 			end
 		end
@@ -571,6 +586,14 @@ end
 function WeaveDelays.UpdateUIcustomizations()
 	WEAVEDELAYSBARBG:SetEdgeColor(self.savedVariables.delayBarFrameR,self.savedVariables.delayBarFrameG,self.savedVariables.delayBarFrameB,self.savedVariables.delayBarFrameA)
 	WEAVEDELAYSBARBG:SetEdgeTexture(nil, 1, 1, self.savedVariables.delayBarFrameThickness, 0)
+end
+
+local lastReloadNoticeMs = 0
+local function NotifyReloadUI()
+	local now = GetGameTimeMilliseconds()
+	if now - lastReloadNoticeMs < RELOAD_NOTICE_THROTTLE_MS then return end
+	lastReloadNoticeMs = now
+	d("WeaveDelays: Reload UI to apply.")
 end
 
 function WeaveDelays.InitializeMenu()
@@ -598,7 +621,7 @@ function WeaveDelays.InitializeMenu()
 		setFunction = function(value)
 			self.characterSavedVariables.accountWide = value
 			self.savedVariables.accountWide = value
-			d("WeaveDelays: Reload UI to apply.")
+			NotifyReloadUI()
 		end,
 		default = false,
 	},
@@ -637,7 +660,7 @@ function WeaveDelays.InitializeMenu()
 		end,
 		setFunction = function(value)
 			self.savedVariables.showDelayBar = value
-			d("WeaveDelays: Reload UI to apply.")
+			NotifyReloadUI()
 		end,
 		default = false,
 	},
@@ -687,7 +710,7 @@ function WeaveDelays.InitializeMenu()
 		setFunction = function(value)
 			self.savedVariables.delayBarAlpha = 0.01 * tonumber(value)
 			if self.savedVariables.showDelayBar then
-				WINDOW_MANAGER:GetControlByName('WEAVEDELAYSBARBG'):SetAlpha(self.savedVariables.delayBarAlpha)
+				WINDOW_MANAGER:GetControlByName(prefix..'BG'):SetAlpha(self.savedVariables.delayBarAlpha)
 			end
 		end,
 		default = 0.9,
@@ -703,7 +726,7 @@ function WeaveDelays.InitializeMenu()
 		end,
 		setFunction = function(value)
 			self.savedVariables.scale = tonumber(value)
-			d("WeaveDelays: Reload UI to apply.")
+			NotifyReloadUI()
 		end,
 		default = 50,
 	},
@@ -722,7 +745,7 @@ function WeaveDelays.InitializeMenu()
 		end,
 		setFunction = function(value)
 			self.savedVariables.numDelayBarSlots = tonumber(value)
-			d("WeaveDelays: Reload UI to apply.")
+			NotifyReloadUI()
 		end,
 		default = 5,
 	},
@@ -741,7 +764,7 @@ function WeaveDelays.InitializeMenu()
 		end,
 		setFunction = function(value)
 			self.savedVariables.numDelayBarRows = tonumber(value)
-			d("WeaveDelays: Reload UI to apply.")
+			NotifyReloadUI()
 		end,
 		default = 1,
 	},
@@ -863,7 +886,7 @@ function WeaveDelays.InitializeMenu()
 		end,
 		setFunction = function(value)
 			self.savedVariables.showSkillsInDelayBar = value
-			d("WeaveDelays: Reload UI to apply.")
+			NotifyReloadUI()
 		end,
 		default = false,
 	},
@@ -939,9 +962,5 @@ SLASH_COMMANDS[self.slash] = function (cmd)
 		end
 	end
 end
-
- if GetDisplayName() == "@Psiioniic" then
-   SLASH_COMMANDS['/console'] = function()  local newVal = IsConsoleUI()and "0" or "1" SetCVar("ForceConsoleFlow.2",newVal) end
- end
 
 EVENT_MANAGER:RegisterForEvent(self.name, EVENT_ADD_ON_LOADED, self.OnAddOnLoaded)

@@ -1,8 +1,8 @@
 ## Title: WeaveDelays
-## Description: Shows delays between light attacks and skills in action bar
+## Description: Shows delays between light attacks and skills
 ## Author: Psiioniic
-## Version: 1.0.0
-## AddOnVersion: 100
+## Version: 1.0.3
+## AddOnVersion: 103
 ## APIVersion: 101050
 ## SavedVariables: WeaveDelaysVars
 ## DependsOn: LibHarvensAddonSettings>=20108
