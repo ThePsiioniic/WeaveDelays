@@ -9,21 +9,19 @@ local RECENT_ACTION_THRESHOLD_MS = 100
 local HIDE_AFTER_COMBAT_GRACE_MS = 50
 local RELOAD_NOTICE_THROTTLE_MS  = 5000
 
-local COMBO_IDX_SKILL_INDEX     = 1
 local COMBO_IDX_BOUND_ID        = 2
 local COMBO_IDX_DELAY           = 3
 local COMBO_IDX_LA_REGISTERED   = 4
 local COMBO_IDX_LA_CONFIRMED    = 5
 local COMBO_IDX_LA_QUEUED       = 6
 local COMBO_IDX_SKILL_CAST_TIME = 7
-local COMBO_IDX_BAR_INDEX       = 8
 local COMBO_IDX_BASHED          = 9
 
 local prefix = "WEAVEDELAYSBAR"
 
 self.name             = 'WeaveDelays'
 self.slash            = "/weavedelays"
-self.version          = "1.0.3"
+self.version          = "1.0.4"
 self.DefaultSavedVars = {
 	["accountWide"]=false,
 	["delayBarOffsetX"]=300,
@@ -37,7 +35,6 @@ self.DefaultSavedVars = {
 	["showDelayBarOnlyInHomes"]=false,
 	["showDelayBarAfterCombat"]=10,
 	["unlockUI"]=false,
-	["delayBarFontFace"]="ZoFontGameSmall",
 	["delayBarPalette"]="greenred",
 	["delayBarFrameR"]=0.8,
 	["delayBarFrameG"]=0.8,
@@ -50,6 +47,7 @@ self.DefaultSavedVars = {
 	["textLightAttackQueued"]="Q",
 	["textBashed"]="B",
 	["highLatencyMode"]=false,
+	["confirmSkillCasts"]=false,
 }
 self.displayTimeMax      = 999
 self.displayTimeMin      = -99.
@@ -215,13 +213,26 @@ function WeaveDelays.UpdateDelayBarVisibility()
 end
 
 function WeaveDelaysSaveDelayBarPosition()
-	self.savedVariables.delayBarOffsetX = WEAVEDELAYSBAR:GetLeft()
-	self.savedVariables.delayBarOffsetY = WEAVEDELAYSBAR:GetTop()
+	self.savedVariables.delayBarOffsetX = math.floor(WEAVEDELAYSBAR:GetLeft() + 0.5)
+	self.savedVariables.delayBarOffsetY = math.floor(WEAVEDELAYSBAR:GetTop() + 0.5)
+	if LibHarvensAddonSettings ~= nil then
+		LibHarvensAddonSettings:RefreshAddonSettings()
+	end
 end
 
 function WeaveDelays.restoreDelayBarPosition()
 	WEAVEDELAYSBAR:ClearAnchors()
 	WEAVEDELAYSBAR:SetAnchor(TOPLEFT, GuiRoot, TOPLEFT, self.savedVariables.delayBarOffsetX, self.savedVariables.delayBarOffsetY)
+end
+
+function WeaveDelays.SetDelayBarOffsetX(value)
+	self.savedVariables.delayBarOffsetX = tonumber(value)
+	self.restoreDelayBarPosition()
+end
+
+function WeaveDelays.SetDelayBarOffsetY(value)
+	self.savedVariables.delayBarOffsetY = tonumber(value)
+	self.restoreDelayBarPosition()
 end
 
 function WeaveDelays.OnReticleHiddenUpdate()
@@ -430,6 +441,9 @@ function WeaveDelays.OnCombatEvent(eventCode,  result, isError,  abilityName,  a
 		self.log.confirmBash()
 		self.Update()
 	end
+	if sourceName == self.playerName and self.log.resolvePendingSkill(abilityId, isError) then
+		self.Update()
+	end
 end
 
 function WeaveDelays.playerActionSlotAbilityUsed(e, slotId)
@@ -541,6 +555,8 @@ function WeaveDelays:Initialize()
 
 		local textureControl,markerTextureControl,skillTextureControl,labelControl
 		local k=1
+		local chatFontSize = GetChatFontSize()
+		local fontName = string.format("%s|%s|%s", "EsoUI/Common/Fonts/Univers57.slug", math.ceil(0.016*chatFontSize*w), "soft-shadow-thick")
 		for j=1, r do
 			for i=1, n do
 				textureControl = WINDOW_MANAGER:CreateControl(prefix.."L"..k, bg, CT_TEXTURE)
@@ -558,7 +574,7 @@ function WeaveDelays:Initialize()
 					skillTextureControl:SetColor(1.0,1.0,1.0,0.1)
 				end
 				labelControl = WINDOW_MANAGER:CreateControl(prefix.."Q"..k, bg, CT_LABEL)
-				labelControl:SetFont(self.savedVariables.delayBarFontFace)
+				labelControl:SetFont(fontName)
 				labelControl:SetDimensions(math.ceil(w*0.28), math.ceil(w*0.28))
 				labelControl:SetAnchor(TOPLEFT, bg, TOPLEFT, (i-1)*(w+m)+math.max(math.ceil(w*0.7),1), math.max(math.ceil(w*0.08),1)+(j-1)*h)
 				self.delayBarSlotControls[k] = {
@@ -580,6 +596,9 @@ function WeaveDelays:Initialize()
 
 	--- latency
 	self.log.SetHighLatencyMode(self.savedVariables.highLatencyMode)
+
+	--- advanced
+	self.log.SetSkillConfirmationEnabled(self.savedVariables.confirmSkillCasts)
 
 end
 
@@ -729,6 +748,42 @@ function WeaveDelays.InitializeMenu()
 			NotifyReloadUI()
 		end,
 		default = 50,
+	},
+	{
+		type        = LHAS.ST_SLIDER,
+		label       = "Horizontal position",
+		tooltip     = "Distance from the left edge of the screen. Can also be changed by dragging the bar while the UI is unlocked.",
+		min         = -200,
+		max         = GuiRoot:GetWidth(),
+		step        = 1,
+		disable     = function()
+			return not self.savedVariables.showDelayBar
+		end,
+		getFunction = function()
+			return math.floor(self.savedVariables.delayBarOffsetX + 0.5)
+		end,
+		setFunction = function(value)
+			WeaveDelays.SetDelayBarOffsetX(value)
+		end,
+		default = 300,
+	},
+	{
+		type        = LHAS.ST_SLIDER,
+		label       = "Vertical position",
+		tooltip     = "Distance from the top edge of the screen. Can also be changed by dragging the bar while the UI is unlocked.",
+		min         = -200,
+		max         = GuiRoot:GetHeight(),
+		step        = 1,
+		disable     = function()
+			return not self.savedVariables.showDelayBar
+		end,
+		getFunction = function()
+			return math.floor(self.savedVariables.delayBarOffsetY + 0.5)
+		end,
+		setFunction = function(value)
+			WeaveDelays.SetDelayBarOffsetY(value)
+		end,
+		default = 400,
 	},
 	{
 		type        = LHAS.ST_SLIDER,
@@ -928,7 +983,7 @@ function WeaveDelays.InitializeMenu()
 			self.log.SetHighLatencyMode(self.savedVariables.highLatencyMode)
 		end,
 		default = true,
-	},
+	}
 	})
 end
 

@@ -3,6 +3,7 @@ WeaveDelayLog = {}
 function WeaveDelayLog.new()
     local self = {}
     local playerActions = {}
+    local pendingSkillActions = {}
 
     local ACTION_LIGHT_ATTACK       = 1
     local ACTION_SKILL_OFFSET       = 2
@@ -25,8 +26,9 @@ function WeaveDelayLog.new()
 	local skillBarIndex          = nil
 
 	local settings = {}
-	settings.GCD                = 1000
-	settings.lightAttackTimeout = NORMAL_LATENCY_TIMEOUT_MS
+	settings.GCD                     = 1000
+	settings.lightAttackTimeout      = NORMAL_LATENCY_TIMEOUT_MS
+	settings.skillConfirmationEnabled = false
 
 	local combatEndMarkerPosition = -1
 	local combatEndTime           = -1
@@ -49,6 +51,14 @@ function WeaveDelayLog.new()
 		playerActions = newPlayerActions
 		combatEndMarkerPosition = -1
 		combatEndTime = -1
+
+		local newPendingSkillActions = {}
+		for i = 1, #pendingSkillActions do
+			if pendingSkillActions[i][PA_IDX_TIME] >= cutoff then
+				table.insert(newPendingSkillActions, pendingSkillActions[i])
+			end
+		end
+		pendingSkillActions = newPendingSkillActions
 	end
 
 	function self.endCombat()
@@ -58,13 +68,21 @@ function WeaveDelayLog.new()
 
 	function self.reset()
 		playerActions = {}
+		pendingSkillActions = {}
 		combatEndMarkerPosition = -1
 		combatEndTime = -1
 	end
 
     function self.registerAction(playerAction)
 		if activeBarIndex ~= nil then
-			table.insert(playerActions, playerAction)
+			local idx = #playerActions + 1
+			while idx > 1 and playerActions[idx - 1][PA_IDX_TIME] > playerAction[PA_IDX_TIME] do
+				idx = idx - 1
+			end
+			table.insert(playerActions, idx, playerAction)
+			if idx <= combatEndMarkerPosition then
+				combatEndMarkerPosition = combatEndMarkerPosition + 1
+			end
 		end
     end
 
@@ -113,8 +131,15 @@ function WeaveDelayLog.new()
 		local t = GetGameTimeMilliseconds()
 		local boundId = GetSlotBoundId(slotId)
 		local channeled, castTime, channelTime = GetAbilityCastInfo(boundId)
+		if IsCraftedAbilityScribed(boundId) then
+			boundId = GetAbilityIdForCraftedAbilityId(boundId)
+		end
 		local action = {t, activeBarIndex, slotId, boundId, channeled, castTime, channelTime, 0, false, false, false}
-		self.registerAction(action)
+		if settings.skillConfirmationEnabled and slotId > ACTION_SKILL_OFFSET then
+			table.insert(pendingSkillActions, action)
+		else
+			self.registerAction(action)
+		end
 	end
 
 	function self.confirmLightAttack()
@@ -162,6 +187,27 @@ function WeaveDelayLog.new()
 		end
 	end
 
+	function self.resolvePendingSkill(abilityId, isError)
+		local t = GetGameTimeMilliseconds()
+		local n = 1
+		while n <= #pendingSkillActions do
+			local pending = pendingSkillActions[n]
+			local timeout = settings.lightAttackTimeout + (pending[PA_IDX_CAST_TIME] or 0) + (pending[PA_IDX_CHANNEL_TIME] or 0)
+			if t - pending[PA_IDX_TIME] > timeout then
+				table.remove(pendingSkillActions, n)
+			elseif pending[PA_IDX_BOUND_ID] == abilityId then
+				table.remove(pendingSkillActions, n)
+				if not isError then
+					self.registerAction(pending)
+				end
+				return true
+			else
+				n = n + 1
+			end
+		end
+		return false
+	end
+
 	function self.weaponSwap(activeWeaponPair)
 		if skillBarIndex == nil then
 			if activeWeaponPair == 2 then
@@ -173,6 +219,10 @@ function WeaveDelayLog.new()
 			end
 		end
 		activeBarIndex = skillBarIndex[activeWeaponPair]
+	end
+
+	function self.SetSkillConfirmationEnabled(enabled)
+		settings.skillConfirmationEnabled = enabled
 	end
 
 	function self.SetHighLatencyMode(enabled)
