@@ -21,7 +21,7 @@ local prefix = "WEAVEDELAYSBAR"
 
 self.name             = 'WeaveDelays'
 self.slash            = "/weavedelays"
-self.version          = "1.0.4"
+self.version          = "1.0.5"
 self.DefaultSavedVars = {
 	["accountWide"]=false,
 	["delayBarOffsetX"]=300,
@@ -144,6 +144,41 @@ self.palettes = {
 		[9] = {950,  40.0, 1.0, 1.0},
 		[10] = {1000,  10.0, 1.0, 1.0},
 		[11] = {9999,  0.0, 1.0, 1.0},
+	},
+	["cividis"] = {
+		[1]  = {-500, 213.4, 1.00, 0.30},
+		[2]  = {0,    220.0, 0.70, 0.43},
+		[3]  = {50,   223.8, 0.30, 0.42},
+		[4]  = {100,  223.5, 0.30, 0.45},
+		[5]  = {115,  218.1, 0.30, 0.46},
+		[6]  = {135,  47.6,  0.30, 0.51},
+		[7]  = {150,  47.5,  0.30, 0.56},
+		[8]  = {200,  48.8,  0.37, 0.70},
+		[9]  = {400,  50.5,  0.58, 0.85},
+		[10] = {9999, 53.3,  0.78, 1.00},
+	},
+	["okabeito"] = {
+		[1] = {-500, 201.6, 1.00, 0.70},
+		[2] = {0,    201.6, 0.63, 0.91},
+		[3] = {50,   163.7, 1.00, 0.62},
+		[4] = {100,  55.9,  0.73, 0.94},
+		[5] = {150,  41.5,  1.00, 0.90},
+		[6] = {200,  26.5,  1.00, 0.84},
+		[7] = {400,  326.7, 0.41, 0.80},
+		[8] = {500,  0.0,   0.00, 0.00},
+		[9] = {9999, 0.0,   0.00, 0.00},
+	},
+	["viridis"] = {
+		[1]  = {-500, 288.5, 0.99, 0.33},
+		[2]  = {0,    256.0, 0.61, 0.50},
+		[3]  = {50,   214.0, 0.62, 0.55},
+		[4]  = {100,  189.0, 0.73, 0.56},
+		[5]  = {150,  167.9, 0.81, 0.63},
+		[6]  = {200,  137.8, 0.62, 0.76},
+		[7]  = {400,  81.7,  0.74, 0.85},
+		[8]  = {450,  67.75, 0.80, 0.92},
+		[9]  = {500,  53.8,  0.86, 0.99},
+		[10] = {9999, 53.8,  0.86, 0.99},
 	},
 }
 
@@ -309,11 +344,10 @@ end
 
 function WeaveDelays.getPalettesList()
 	local palettes = {}
-	table.insert(palettes, "greenred")
-	table.insert(palettes, "greenred2")
-	table.insert(palettes, "rainbow")
-	table.insert(palettes, "greenredpink")
-	table.insert(palettes, "purplegreenyellow")
+	for name, _ in pairs(self.palettes) do
+		table.insert(palettes, name)
+	end
+	table.sort(palettes)
 	return palettes
 end
 
@@ -402,6 +436,56 @@ function WeaveDelays.UpdateDelayBar()
 			end
 		end
 	end
+end
+
+function WeaveDelays.ColorTest()
+
+	self.ShowDelayBar()
+
+	local n           = self.savedVariables.numDelayBarSlots * self.savedVariables.numDelayBarRows
+	local minT, maxT  = -100, 500
+	local step        = (n > 1) and (maxT - minT) / (n - 1) or 0
+	local abilityIds  = self.GetTestAbilityIds()
+
+	for i = 1, n do
+		local slotControls = self.delayBarSlotControls[i]
+		if slotControls ~= nil then
+			local barBox        = slotControls.box
+			local barMarker     = slotControls.marker
+			local barPicture    = slotControls.picture
+			local barStatusFlag = slotControls.statusFlag
+
+			local t = minT + (i - 1) * step
+
+			barMarker:SetColor(1.0, 1.0, 1.0, 1.0)
+			self.SetColor(barBox, t, 1, self.savedVariables.delayBarPalette)
+
+			local markerT = self.ClipRange(t, DELAY_CLAMP_MIN_MS, DELAY_CLAMP_MAX_MS)
+			barMarker:SetAnchor(TOPLEFT, barBox, TOPLEFT, math.ceil(math.min(markerT,self.barMarkerScale) * self.savedVariables.scale * 0.002), -math.ceil(0.08*self.savedVariables.scale))
+
+			if self.savedVariables.showSkillsInDelayBar and barPicture ~= nil then
+				local abilityId = abilityIds[math.random(#abilityIds)]
+				barPicture:SetColor(1.0,1.0,1.0,1.0)
+				barPicture:SetTexture(self.GetTextureFromAbilityId(abilityId))
+			end
+
+			barStatusFlag:SetText(tostring(math.floor(t+0.5)))
+		end
+	end
+end
+
+function WeaveDelays.GetTestAbilityIds()
+	local ids = {}
+	for slotId = 3, 8 do
+		local boundId = GetSlotBoundId(slotId)
+		if boundId ~= nil and boundId ~= 0 then
+			table.insert(ids, boundId)
+		end
+	end
+	if #ids == 0 then
+		ids = {self.abilityIdCrystalFragments, self.abilityIdAssassinsWill}
+	end
+	return ids
 end
 
 function WeaveDelays.GetTextureFromAbilityId(abilityId)
@@ -1016,6 +1100,10 @@ SLASH_COMMANDS[self.slash] = function (cmd)
 			self.Update()
 		end
 	end
+end
+
+SLASH_COMMANDS["/wdcolortest"] = function()
+	WeaveDelays.ColorTest()
 end
 
 EVENT_MANAGER:RegisterForEvent(self.name, EVENT_ADD_ON_LOADED, self.OnAddOnLoaded)

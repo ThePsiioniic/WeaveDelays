@@ -3,7 +3,7 @@
 		<Category name="WeaveDelays">
 			<Action name="WD_TOGGLE">
 				<Up>
-					WeaveDelays_ToggleWindow()
+					WeaveDelays.ToggleWindow()
 				</Up>
 			</Action>
 		</Category>
