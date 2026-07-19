@@ -1,36 +1,22 @@
 
 WeaveDelayLog = {}
 function WeaveDelayLog.new()
-    local self = {}
-    local playerActions = {}
-    local pendingSkillActions = {}
+	local self = {}
+	local playerActions = {}
+	local pendingSkillActions = {}
 
-    local ACTION_LIGHT_ATTACK       = 1
-    local ACTION_SKILL_OFFSET       = 2
-    local NORMAL_LATENCY_TIMEOUT_MS = 1000
-    local HIGH_LATENCY_TIMEOUT_MS   = 1600
+	local ACTION_LIGHT_ATTACK       = 1
+	local ACTION_SKILL_OFFSET       = 2
+	local NORMAL_LATENCY_TIMEOUT_MS = 1000
+	local HIGH_LATENCY_TIMEOUT_MS   = 1600
 
-    local AVG_MISSED_PENALTY_MS  = 1000
-    local AVG_DELAY_CLAMP_MIN_MS = 1
-    local AVG_DELAY_CLAMP_MAX_MS = 1000
-
-    local PA_IDX_TIME         = 1
-    local PA_IDX_BAR_INDEX    = 2
-    local PA_IDX_SLOT_ID      = 3
-    local PA_IDX_BOUND_ID     = 4
-    local PA_IDX_CAST_TIME    = 6
-    local PA_IDX_CHANNEL_TIME = 7
-    local PA_IDX_LA_CONFIRMED = 9
-    local PA_IDX_LA_QUEUED    = 10
-    local PA_IDX_BASH         = 11
-
-	-- index for weapon bar, 0 is the one active when addon is loaded
-	local activeBarIndex         = 0
-	local skillBarIndex          = nil
+	local AVG_MISSED_PENALTY_MS  = 1000
+	local AVG_DELAY_CLAMP_MIN_MS = 1
+	local AVG_DELAY_CLAMP_MAX_MS = 1000
 
 	local settings = {}
-	settings.GCD                     = 1000
-	settings.lightAttackTimeout      = NORMAL_LATENCY_TIMEOUT_MS
+	settings.GCD                      = 1000
+	settings.lightAttackTimeout       = NORMAL_LATENCY_TIMEOUT_MS
 	settings.skillConfirmationEnabled = false
 
 	local combatEndMarkerPosition = -1
@@ -41,11 +27,111 @@ function WeaveDelayLog.new()
 	-- state event, past the marker; treat such stragglers as the old fight
 	local COMBAT_END_GRACE_MS  = 500
 
+	local combos           = {}
+	local maxCombos        = 800
+	local prevSkillEndTime = nil
+	local pendingLaAction  = nil
+
+	-- running average of the weave delay
+	local avgSum, avgCount = 0, 0
+	local avgPending       = {}
+	local avgFirstLASeen   = false
+
+	local function resetAverage()
+		avgSum, avgCount = 0, 0
+		avgPending       = {}
+		avgFirstLASeen   = false
+	end
+
+	local function settleAveragePending(now)
+		while avgPending[1] ~= nil and now - avgPending[1].la.time > settings.lightAttackTimeout do
+			local combo = table.remove(avgPending, 1)
+			if combo.la.confirmed then
+				avgSum = avgSum + math.max(math.min(combo.delay, AVG_DELAY_CLAMP_MAX_MS), AVG_DELAY_CLAMP_MIN_MS)
+			else
+				avgSum = avgSum + AVG_MISSED_PENALTY_MS
+			end
+			avgCount = avgCount + 1
+		end
+	end
+
+	function self.getAverageDelay()
+		settleAveragePending(GetGameTimeMilliseconds())
+		if avgCount == 0 then
+			return nil
+		end
+		return avgSum / avgCount
+	end
+
+	local function trackAction(action)
+		if action.slotId > ACTION_SKILL_OFFSET then
+			local measured = prevSkillEndTime ~= nil
+			local combo = {
+				skill    = action,
+				la       = pendingLaAction,
+				delay    = measured and (action.time - prevSkillEndTime) or 0,
+				measured = measured,
+			}
+			table.insert(combos, combo)
+			if #combos > maxCombos then
+				table.remove(combos, 1)
+			end
+			prevSkillEndTime = action.time + math.max((action.castTime or 0) + (action.channelTime or 0), settings.GCD)
+			pendingLaAction  = nil
+			return combo
+		elseif action.slotId == ACTION_LIGHT_ATTACK and pendingLaAction == nil then
+			pendingLaAction = action
+		end
+		return nil
+	end
+
+	local function rebuildCombos()
+		combos           = {}
+		prevSkillEndTime = nil
+		pendingLaAction  = nil
+		for i = 1, #playerActions do
+			trackAction(playerActions[i])
+		end
+	end
+
+	function self.registerAction(action)
+		local idx = #playerActions + 1
+		while idx > 1 and playerActions[idx - 1].time > action.time do
+			idx = idx - 1
+		end
+		table.insert(playerActions, idx, action)
+		if idx <= combatEndMarkerPosition then
+			combatEndMarkerPosition = combatEndMarkerPosition + 1
+		end
+
+		if idx == #playerActions then
+			local combo = trackAction(action)
+			settleAveragePending(action.time)
+			if combo ~= nil and combo.measured and avgFirstLASeen then
+				if combo.la == nil then
+					avgSum   = avgSum + AVG_MISSED_PENALTY_MS
+					avgCount = avgCount + 1
+				else
+					table.insert(avgPending, combo)
+				end
+			end
+			if action.slotId == ACTION_LIGHT_ATTACK then
+				avgFirstLASeen = true
+			end
+		else
+			rebuildCombos()
+		end
+	end
+
+	function self.getCombos()
+		return combos
+	end
+
 	function self.startCombat()
 		local cutoff = GetGameTimeMilliseconds() - PRE_COMBAT_WINDOW_MS
 		local newPlayerActions = {}
 		for i = 1, #playerActions do
-			local t = playerActions[i][PA_IDX_TIME]
+			local t = playerActions[i].time
 			if i > combatEndMarkerPosition and t >= cutoff
 					and (combatEndTime < 0 or t > combatEndTime + COMBAT_END_GRACE_MS) then
 				table.insert(newPlayerActions, playerActions[i])
@@ -57,13 +143,14 @@ function WeaveDelayLog.new()
 
 		local newPendingSkillActions = {}
 		for i = 1, #pendingSkillActions do
-			if pendingSkillActions[i][PA_IDX_TIME] >= cutoff then
+			if pendingSkillActions[i].time >= cutoff then
 				table.insert(newPendingSkillActions, pendingSkillActions[i])
 			end
 		end
 		pendingSkillActions = newPendingSkillActions
 
-		self.resetAverageDelay()
+		rebuildCombos()
+		resetAverage()
 	end
 
 	function self.endCombat()
@@ -76,130 +163,27 @@ function WeaveDelayLog.new()
 		pendingSkillActions = {}
 		combatEndMarkerPosition = -1
 		combatEndTime = -1
-		self.resetAverageDelay()
+		rebuildCombos()
+		resetAverage()
 	end
 
-	-- running average of weave delay: kept as an incrementally updated total/count
-	-- rather than recomputed from the full history, since playerActions can grow
-	-- large over a long fight and this is queried on almost every combat event
-	local avgSum, avgCount        = 0, 0
-	local avgPendingQueue         = {}
-	local avgPrevSkillEndTime     = nil
-	local avgLightAttackRef       = nil
-	local avgFirstLightAttackSeen = false
-
-	function self.resetAverageDelay()
-		avgSum, avgCount        = 0, 0
-		avgPendingQueue         = {}
-		avgPrevSkillEndTime     = nil
-		avgLightAttackRef       = nil
-		avgFirstLightAttackSeen = false
-	end
-
-	-- a combo's light attack confirmation can arrive after the combo itself has
-	-- closed, so recently-closed combos wait here until that window has passed
-	local function flushSettledAverageEntries(now)
-		while avgPendingQueue[1] ~= nil and now - avgPendingQueue[1][2][PA_IDX_TIME] > settings.lightAttackTimeout do
-			local entry = table.remove(avgPendingQueue, 1)
-			if entry[2][PA_IDX_LA_CONFIRMED] then
-				avgSum = avgSum + entry[1]
-			else
-				avgSum = avgSum + AVG_MISSED_PENALTY_MS
-			end
-			avgCount = avgCount + 1
-		end
-	end
-
-	function self.getAverageDelay()
-		flushSettledAverageEntries(GetGameTimeMilliseconds())
-		if avgCount == 0 then
-			return nil
-		end
-		return avgSum / avgCount
-	end
-
-    function self.registerAction(playerAction)
-		if activeBarIndex ~= nil then
-			local idx = #playerActions + 1
-			while idx > 1 and playerActions[idx - 1][PA_IDX_TIME] > playerAction[PA_IDX_TIME] do
-				idx = idx - 1
-			end
-			table.insert(playerActions, idx, playerAction)
-			if idx <= combatEndMarkerPosition then
-				combatEndMarkerPosition = combatEndMarkerPosition + 1
-			end
-
-			flushSettledAverageEntries(playerAction[PA_IDX_TIME])
-			if playerAction[PA_IDX_SLOT_ID] > ACTION_SKILL_OFFSET then
-				if avgPrevSkillEndTime ~= nil and avgFirstLightAttackSeen then
-					if avgLightAttackRef == nil then
-						avgSum   = avgSum + AVG_MISSED_PENALTY_MS
-						avgCount = avgCount + 1
-					else
-						local rawDelay = playerAction[PA_IDX_TIME] - avgPrevSkillEndTime
-						local clamped  = math.max(math.min(rawDelay, AVG_DELAY_CLAMP_MAX_MS), AVG_DELAY_CLAMP_MIN_MS)
-						table.insert(avgPendingQueue, {clamped, avgLightAttackRef})
-					end
-				end
-				local duration = math.max((playerAction[PA_IDX_CAST_TIME] or 0) + (playerAction[PA_IDX_CHANNEL_TIME] or 0), settings.GCD)
-				avgPrevSkillEndTime = playerAction[PA_IDX_TIME] + duration
-				avgLightAttackRef   = nil
-			elseif playerAction[PA_IDX_SLOT_ID] == ACTION_LIGHT_ATTACK then
-				avgLightAttackRef       = playerAction
-				avgFirstLightAttackSeen = true
-			end
-		end
-    end
-
-	function self.getLastCombos(numCombos)
-		local combos = {}
-		local skillCastTime, skillIndex, boundID, lightAttackRegistered, lightAttackConfirmed, lightAttackQueued, duration, bashed = nil,0,0,false,false,false,0,false
-		local combo = nil
-		local playerAction
-		local n = #playerActions
-		while n > 0 do
-			playerAction = playerActions[n]
-			if playerAction[PA_IDX_SLOT_ID] > ACTION_SKILL_OFFSET then
-				if skillCastTime ~= nil then
-					combo = {skillIndex, boundID, skillCastTime - playerAction[PA_IDX_TIME] - duration, lightAttackRegistered, lightAttackConfirmed, lightAttackQueued, skillCastTime, playerAction[PA_IDX_BAR_INDEX], bashed}
-					table.insert(combos, combo)
-					if #combos >= numCombos then
-						break
-					end
-				end
-				skillCastTime = playerAction[PA_IDX_TIME]
-				skillIndex    = playerAction[PA_IDX_SLOT_ID] - ACTION_SKILL_OFFSET
-				boundID       = playerAction[PA_IDX_BOUND_ID]
-				duration      = math.max((playerAction[PA_IDX_CAST_TIME] or 0) + (playerAction[PA_IDX_CHANNEL_TIME] or 0), settings.GCD)
-
-				lightAttackRegistered = false
-				lightAttackConfirmed  = false
-				lightAttackQueued     = false
-				bashed                = playerAction[PA_IDX_BASH]
-			elseif playerAction[PA_IDX_SLOT_ID] == ACTION_LIGHT_ATTACK then
-				lightAttackRegistered = true
-				lightAttackConfirmed  = playerAction[PA_IDX_LA_CONFIRMED]
-				lightAttackQueued     = playerAction[PA_IDX_LA_QUEUED]
-			end
-			n = n - 1
-		end
-		if #combos < numCombos and skillCastTime ~= nil then
-			local barIdx = playerActions[1] ~= nil and playerActions[1][PA_IDX_BAR_INDEX] or 0
-			combo = {skillIndex, boundID, 0, lightAttackRegistered, lightAttackConfirmed, lightAttackQueued, skillCastTime, barIdx, bashed}
-			table.insert(combos, combo)
-		end
-
-		return combos
-	end
-
-    function self.slotUsed(slotId)
+	function self.slotUsed(slotId)
 		local t = GetGameTimeMilliseconds()
 		local boundId = GetSlotBoundId(slotId)
-		local channeled, castTime, channelTime = GetAbilityCastInfo(boundId)
+		local _, castTime, channelTime = GetAbilityCastInfo(boundId)
 		if IsCraftedAbilityScribed(boundId) then
 			boundId = GetAbilityIdForCraftedAbilityId(boundId)
 		end
-		local action = {t, activeBarIndex, slotId, boundId, channeled, castTime, channelTime, 0, false, false, false}
+		local action = {
+			time        = t,
+			slotId      = slotId,
+			boundId     = boundId,
+			castTime    = castTime,
+			channelTime = channelTime,
+			confirmed   = false,
+			queued      = false,
+			bashed      = false,
+		}
 		if settings.skillConfirmationEnabled and slotId > ACTION_SKILL_OFFSET then
 			table.insert(pendingSkillActions, action)
 		else
@@ -209,46 +193,43 @@ function WeaveDelayLog.new()
 
 	function self.confirmLightAttack()
 		local t = GetGameTimeMilliseconds()
-		local n = #playerActions
-		while n > 0 do
-			if t - playerActions[n][PA_IDX_TIME] > settings.lightAttackTimeout then
+		for n = #playerActions, 1, -1 do
+			local action = playerActions[n]
+			if t - action.time > settings.lightAttackTimeout then
 				break
 			end
-			if playerActions[n][PA_IDX_SLOT_ID] == ACTION_LIGHT_ATTACK then
-				playerActions[n][PA_IDX_LA_CONFIRMED] = true
+			if action.slotId == ACTION_LIGHT_ATTACK then
+				action.confirmed = true
 				break
 			end
-			n = n - 1
 		end
 	end
 
 	function self.flagLightAttackQueued()
 		local t = GetGameTimeMilliseconds()
-		local n = #playerActions
-		while n > 0 do
-			if t - playerActions[n][PA_IDX_TIME] > settings.lightAttackTimeout then
+		for n = #playerActions, 1, -1 do
+			local action = playerActions[n]
+			if t - action.time > settings.lightAttackTimeout then
 				break
 			end
-			if playerActions[n][PA_IDX_SLOT_ID] == ACTION_LIGHT_ATTACK then
-				playerActions[n][PA_IDX_LA_QUEUED] = true
+			if action.slotId == ACTION_LIGHT_ATTACK then
+				action.queued = true
 				break
 			end
-			n = n - 1
 		end
 	end
 
 	function self.confirmBash()
 		local t = GetGameTimeMilliseconds()
-		local n = #playerActions
-		while n > 0 do
-			if t - playerActions[n][PA_IDX_TIME] > settings.lightAttackTimeout then
+		for n = #playerActions, 1, -1 do
+			local action = playerActions[n]
+			if t - action.time > settings.lightAttackTimeout then
 				break
 			end
-			if playerActions[n][PA_IDX_SLOT_ID] > ACTION_SKILL_OFFSET then
-				playerActions[n][PA_IDX_BASH] = true
+			if action.slotId > ACTION_SKILL_OFFSET then
+				action.bashed = true
 				break
 			end
-			n = n - 1
 		end
 	end
 
@@ -257,10 +238,10 @@ function WeaveDelayLog.new()
 		local n = 1
 		while n <= #pendingSkillActions do
 			local pending = pendingSkillActions[n]
-			local timeout = settings.lightAttackTimeout + (pending[PA_IDX_CAST_TIME] or 0) + (pending[PA_IDX_CHANNEL_TIME] or 0)
-			if t - pending[PA_IDX_TIME] > timeout then
+			local timeout = settings.lightAttackTimeout + (pending.castTime or 0) + (pending.channelTime or 0)
+			if t - pending.time > timeout then
 				table.remove(pendingSkillActions, n)
-			elseif pending[PA_IDX_BOUND_ID] == abilityId then
+			elseif pending.boundId == abilityId then
 				table.remove(pendingSkillActions, n)
 				if not isError then
 					self.registerAction(pending)
@@ -273,15 +254,11 @@ function WeaveDelayLog.new()
 		return false
 	end
 
-	function self.weaponSwap(activeWeaponPair)
-		if skillBarIndex == nil then
-			if activeWeaponPair == 2 then
-				skillBarIndex = {[0]=0, [1]=0, [2]=1}
-			else
-				skillBarIndex = {[0]=0, [1]=1, [2]=0}
-			end
+	function self.SetMaxCombos(n)
+		maxCombos = n
+		while #combos > maxCombos do
+			table.remove(combos, 1)
 		end
-		activeBarIndex = skillBarIndex[activeWeaponPair]
 	end
 
 	function self.SetSkillConfirmationEnabled(enabled)

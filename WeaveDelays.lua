@@ -9,14 +9,6 @@ local RECENT_ACTION_THRESHOLD_MS = 100
 local HIDE_AFTER_COMBAT_GRACE_MS = 50
 local RELOAD_NOTICE_THROTTLE_MS  = 5000
 
-local COMBO_IDX_BOUND_ID        = 2
-local COMBO_IDX_DELAY           = 3
-local COMBO_IDX_LA_REGISTERED   = 4
-local COMBO_IDX_LA_CONFIRMED    = 5
-local COMBO_IDX_LA_QUEUED       = 6
-local COMBO_IDX_SKILL_CAST_TIME = 7
-local COMBO_IDX_BASHED          = 9
-
 local FONT_FACE  = "EsoUI/Common/Fonts/Univers57.slug"
 local FONT_STYLE = "soft-shadow-thick"
 
@@ -79,17 +71,17 @@ self.palettes = {
 	["delay"] = {
 		[1] = {-500, 180.0, 1.0, 1.0},
 		[2] = {0,    150.0, 1.0, 1.0},
-		[3] = {50,  90.0, 1.0, 1.0},
+		[3] = {50,   90.0, 1.0, 1.0},
 		[4] = {100,  60.0, 1.0, 1.0},
 		[5] = {150,  33.0, 1.0, 1.0},
 		[6] = {200,  18.0, 1.0, 1.0},
 		[7] = {400,  10.0, 1.0, 1.0},
-		[8] = {9999,  0.0, 1.0, 1.0}
+		[8] = {9999,  0.0, 0.0, 0.0}
 	},
 	["greenred"] = {
 		[1] = {-500, 180.0, 1.0, 1.0},
 		[2] = {0,    150.0, 1.0, 1.0},
-		[3] = {50,  90.0, 1.0, 1.0},
+		[3] = {50,   90.0, 1.0, 1.0},
 		[4] = {100,  60.0, 1.0, 1.0},
 		[5] = {150,  33.0, 1.0, 1.0},
 		[6] = {200,  18.0, 1.0, 1.0},
@@ -311,14 +303,8 @@ function WeaveDelays.GetPaletteColor(p, v)
 	for i=1,nPoints-1 do
 		if v > p[i][1] and v <= p[i+1][1] then
 			local r = (v-p[i][1])/(p[i+1][1]-p[i][1])
-			local deltaH = (p[i+1][2]-p[i][2])
-			if deltaH > 180.0 then
-				deltaH = deltaH - 360.0
-			end
-			local h = p[i][2]+r*deltaH
-			if h < 0 then
-				h = h + 360.0
-			end
+			local deltaH = (p[i+1][2] - p[i][2] + 180.0) % 360.0 - 180.0
+			local h = (p[i][2] + r*deltaH) % 360.0
 			return h,p[i][3]+r*(p[i+1][3]-p[i][3]),p[i][4]+r*(p[i+1][4]-p[i][4])
 		end
 	end
@@ -376,9 +362,11 @@ function WeaveDelays.UpdateDelayBar()
 		return
 	end
 
-	local n          = self.savedVariables.numDelayBarSlots * self.savedVariables.numDelayBarRows
-	local lastCombos = self.log.getLastCombos(n)
-	local gameTime   = GetGameTimeMilliseconds()
+	local sv        = self.savedVariables
+	local n         = sv.numDelayBarSlots * sv.numDelayBarRows
+	local combos    = self.log.getCombos()
+	local numCombos = #combos
+	local gameTime  = GetGameTimeMilliseconds()
 
 	for i = 1, n do
 		local slotControls  = self.delayBarSlotControls[i]
@@ -388,58 +376,49 @@ function WeaveDelays.UpdateDelayBar()
 		local barStatusFlag = slotControls ~= nil and slotControls.statusFlag or nil
 
 		if barBox ~= nil then
-			if lastCombos[n+1-i] ~= nil then
-				local combo             = lastCombos[n+1-i]
-				local lightAttackMissed = not (combo[COMBO_IDX_LA_REGISTERED] and combo[COMBO_IDX_LA_CONFIRMED])
-				local t                 = combo[COMBO_IDX_DELAY]
+			-- rightmost slot (i == n) shows the newest combo
+			local combo = combos[numCombos - n + i]
+			if combo ~= nil then
+				local la                = combo.la
+				local lightAttackMissed = la == nil or not la.confirmed
+				local settled           = gameTime - combo.skill.time > RECENT_ACTION_THRESHOLD_MS
+				local t                 = combo.delay
 
-				if combo[COMBO_IDX_SKILL_CAST_TIME]~= nil and gameTime - combo[COMBO_IDX_SKILL_CAST_TIME] > RECENT_ACTION_THRESHOLD_MS then
+				local flagText = ""
+				if settled then
 					if not lightAttackMissed then
-						if combo[COMBO_IDX_BASHED] then
-							barStatusFlag:SetText(self.savedVariables.textBashed)
-						else
-							barStatusFlag:SetText("")
+						if combo.skill.bashed then
+							flagText = sv.textBashed
 						end
-					elseif not combo[COMBO_IDX_LA_REGISTERED] then
-						barStatusFlag:SetText(self.savedVariables.textLightAttackMissed)
-					elseif combo[COMBO_IDX_LA_QUEUED] then
-						barStatusFlag:SetText(self.savedVariables.textLightAttackQueued)
+					elseif la == nil then
+						flagText = sv.textLightAttackMissed
+					elseif la.queued then
+						flagText = sv.textLightAttackQueued
 					else
-						barStatusFlag:SetText(self.savedVariables.textLightAttackDisappeared)
+						flagText = sv.textLightAttackDisappeared
 					end
-				else
-					barStatusFlag:SetText("")
 				end
+				barStatusFlag:SetText(flagText)
 
-				if lightAttackMissed ~= nil and lightAttackMissed then
-					barMarker:SetColor(1.0,1.0,1.0,0.0)
-				else
-					barMarker:SetColor(1.0,1.0,1.0,1.0)
-				end
+				barMarker:SetColor(1.0, 1.0, 1.0, lightAttackMissed and 0.0 or 1.0)
+				t = lightAttackMissed and DELAY_MISSED_SENTINEL_MS or self.ClipRange(t, DELAY_CLAMP_MIN_MS, DELAY_CLAMP_MAX_MS)
 
-				t = math.max(math.min(t,DELAY_CLAMP_MAX_MS),DELAY_CLAMP_MIN_MS)
-
-				if lightAttackMissed ~= nil and lightAttackMissed then
-					t = DELAY_MISSED_SENTINEL_MS
-				end
-
-				if combo[COMBO_IDX_SKILL_CAST_TIME]~= nil and gameTime - combo[COMBO_IDX_SKILL_CAST_TIME] > RECENT_ACTION_THRESHOLD_MS then
-					self.SetColor(barBox, t, 1, self.savedVariables.delayBarPalette)
+				if settled then
+					self.SetColor(barBox, t, 1, sv.delayBarPalette)
 				else
 					barBox:SetColor(1.0,1.0,1.0,0.1)
 				end
 
-				barMarker:SetAnchor(TOPLEFT, barBox, TOPLEFT, math.ceil(math.min(t,self.barMarkerScale) * self.savedVariables.scale * 0.002), -math.ceil(0.08*self.savedVariables.scale))
+				barMarker:SetAnchor(TOPLEFT, barBox, TOPLEFT, math.ceil(math.min(t,self.barMarkerScale) * sv.scale * 0.002), -math.ceil(0.08*sv.scale))
 
-				if self.savedVariables.showSkillsInDelayBar then
-					local boundId  = combo[COMBO_IDX_BOUND_ID]
+				if sv.showSkillsInDelayBar and barPicture ~= nil then
 					barPicture:SetColor(1.0,1.0,1.0,1.0)
-					barPicture:SetTexture(self.GetTextureFromAbilityId(boundId))
+					barPicture:SetTexture(self.GetTextureFromAbilityId(combo.skill.boundId))
 				end
 			else
 				barMarker:SetColor(1.0,1.0,1.0,0.2)
 				barBox:SetColor(1.0,1.0,1.0,0.2)
-				if self.savedVariables.showSkillsInDelayBar then
+				if sv.showSkillsInDelayBar and barPicture ~= nil then
 					barPicture:SetTexture(nil)
 					barPicture:SetColor(1.0,1.0,1.0,0.1)
 				end
@@ -558,7 +537,6 @@ function WeaveDelays.playerActionSlotAbilityUsed(e, slotId)
 end
 
 function WeaveDelays.OnWeaponSwap(_, activeWeaponPair, locked)
-	self.log.weaponSwap(activeWeaponPair)
 	if self.inCombat then
 		self.UpdateDelayBar()
 	end
@@ -618,6 +596,7 @@ function WeaveDelays:Initialize()
 	end
 	self.log = WeaveDelayLog.new()
 	self.log.reset()
+	self.log.SetMaxCombos(self.savedVariables.numDelayBarSlots * self.savedVariables.numDelayBarRows)
 
 	-- Events
 	EVENT_MANAGER:RegisterForEvent(self.name.."playerActionSlotAbilityUsed", EVENT_ACTION_SLOT_ABILITY_USED, self.playerActionSlotAbilityUsed)
@@ -806,7 +785,7 @@ function WeaveDelays.InitializeMenu()
 			self.savedVariables.showDelayBar = value
 			NotifyReloadUI()
 		end,
-		default = false,
+		default = true,
 	},
 	{
 		type        = LHAS.ST_COLOR,
@@ -857,7 +836,7 @@ function WeaveDelays.InitializeMenu()
 				WINDOW_MANAGER:GetControlByName(prefix..'BG'):SetAlpha(self.savedVariables.delayBarAlpha)
 			end
 		end,
-		default = 0.9,
+		default = 90,
 	},
 	{
 		type        = LHAS.ST_SLIDER,
@@ -927,7 +906,7 @@ function WeaveDelays.InitializeMenu()
 			self.savedVariables.numDelayBarSlots = tonumber(value)
 			NotifyReloadUI()
 		end,
-		default = 5,
+		default = 10,
 	},
 	{
 		type        = LHAS.ST_SLIDER,
@@ -1020,7 +999,7 @@ function WeaveDelays.InitializeMenu()
 				WeaveDelays.ShowDelayBar()
 			end
 		end,
-		default = false,
+		default = true,
 	},
 	{
 		type        = LHAS.ST_SLIDER,
@@ -1068,7 +1047,7 @@ function WeaveDelays.InitializeMenu()
 			self.savedVariables.showSkillsInDelayBar = value
 			NotifyReloadUI()
 		end,
-		default = false,
+		default = true,
 	},
 	{
 		type        = LHAS.ST_CHECKBOX,
@@ -1123,7 +1102,7 @@ function WeaveDelays.InitializeMenu()
 			self.savedVariables.highLatencyMode = value
 			self.log.SetHighLatencyMode(self.savedVariables.highLatencyMode)
 		end,
-		default = true,
+		default = false,
 	}
 	})
 end
