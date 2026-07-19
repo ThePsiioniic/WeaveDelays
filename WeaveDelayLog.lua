@@ -26,7 +26,6 @@ function WeaveDelayLog.new()
 
 	-- index for weapon bar, 0 is the one active when addon is loaded
 	local activeBarIndex         = 0
-	local activeBarIndexReversed = false
 	local skillBarIndex          = nil
 
 	local settings = {}
@@ -278,10 +277,8 @@ function WeaveDelayLog.new()
 		if skillBarIndex == nil then
 			if activeWeaponPair == 2 then
 				skillBarIndex = {[0]=0, [1]=0, [2]=1}
-				activeBarIndexReversed = false
 			else
 				skillBarIndex = {[0]=0, [1]=1, [2]=0}
-				activeBarIndexReversed = true
 			end
 		end
 		activeBarIndex = skillBarIndex[activeWeaponPair]

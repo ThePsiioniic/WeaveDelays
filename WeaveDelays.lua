@@ -53,10 +53,6 @@ self.DefaultSavedVars = {
 	["highLatencyMode"]=false,
 	["confirmSkillCasts"]=false,
 }
-self.displayTimeMax      = 999
-self.displayTimeMin      = -99.
-self.historySize         = 99999
-self.historySizeInCombat = 5
 self.playerName          = GetRawUnitName("player")
 self.visible             = false
 
@@ -331,7 +327,7 @@ end
 
 function HSVToRGB(h,s,v)
 	if s == 0 then
-		return v
+		return v, v, v
 	end
 	local c = math.floor( h / 60 );
 	local d = ( h / 60 ) - c;
