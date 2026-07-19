@@ -17,11 +17,14 @@ local COMBO_IDX_LA_QUEUED       = 6
 local COMBO_IDX_SKILL_CAST_TIME = 7
 local COMBO_IDX_BASHED          = 9
 
+local FONT_FACE  = "EsoUI/Common/Fonts/Univers57.slug"
+local FONT_STYLE = "soft-shadow-thick"
+
 local prefix = "WEAVEDELAYSBAR"
 
 self.name             = 'WeaveDelays'
 self.slash            = "/weavedelays"
-self.version          = "1.0.5"
+self.version          = "1.1.0"
 self.DefaultSavedVars = {
 	["accountWide"]=false,
 	["delayBarOffsetX"]=300,
@@ -31,6 +34,7 @@ self.DefaultSavedVars = {
 	["numDelayBarRows"]=1,
 	["showDelayBar"]=true,
 	["showSkillsInDelayBar"]=true,
+	["showAverageDelay"]=true,
 	["showDelayBarOnlyInCombat"]=true,
 	["showDelayBarOnlyInHomes"]=false,
 	["showDelayBarAfterCombat"]=10,
@@ -179,6 +183,17 @@ self.palettes = {
 		[8]  = {450,  67.75, 0.80, 0.92},
 		[9]  = {500,  53.8,  0.86, 0.99},
 		[10] = {9999, 53.8,  0.86, 0.99},
+	},
+	["strict"] = {
+		[1] = {-500, 201.6, 1.00, 0.9},
+		[2] = {0,    201.6, 1.00, 0.91},
+		[3] = {50,   163.7, 1.00, 0.62},
+		[4] = {80,   55.9,  1.00, 0.94},
+		[5] = {120,  41.5,  1.00, 0.90},
+		[6] = {150,  26.5,  1.00, 0.84},
+		[7] = {250,  326.7, 0.5, 0.80},
+		[8] = {500,  0.0,   0.00, 0.00},
+		[9] = {9999, 0.0,   0.00, 0.00},
 	},
 }
 
@@ -436,6 +451,15 @@ function WeaveDelays.UpdateDelayBar()
 			end
 		end
 	end
+
+	if self.averageDelayLabel ~= nil then
+		local avgDelayMs = self.log.getAverageDelay()
+		if avgDelayMs ~= nil then
+			self.averageDelayLabel:SetText(string.format("%.2f", avgDelayMs * 0.001))
+		else
+			self.averageDelayLabel:SetText("")
+		end
+	end
 end
 
 function WeaveDelays.ColorTest()
@@ -443,7 +467,7 @@ function WeaveDelays.ColorTest()
 	self.ShowDelayBar()
 
 	local n           = self.savedVariables.numDelayBarSlots * self.savedVariables.numDelayBarRows
-	local minT, maxT  = -100, 500
+	local minT, maxT  = -50, 450
 	local step        = (n > 1) and (maxT - minT) / (n - 1) or 0
 	local abilityIds  = self.GetTestAbilityIds()
 
@@ -625,7 +649,16 @@ function WeaveDelays:Initialize()
 
 	if self.savedVariables.showDelayBar then
 		self.restoreDelayBarPosition()
-		WEAVEDELAYSBAR:SetDimensions((w+m)*n+2, h*r)
+
+		local avgLabelHeight, avgGap = 0, 0
+		if self.savedVariables.showAverageDelay then
+			avgLabelHeight = math.ceil(w*0.44)
+			avgGap         = 2
+		end
+
+		WEAVEDELAYSBAR:SetDimensions((w+m)*n+2, h*r + avgLabelHeight + avgGap)
+		bg:ClearAnchors()
+		bg:SetAnchor(TOPLEFT, WEAVEDELAYSBAR, TOPLEFT, 0, avgLabelHeight + avgGap)
 		bg:SetDimensions((w+m)*n+2, h*r)
 
 		if not self.savedVariables.showDelayBarOnlyInCombat then
@@ -640,7 +673,19 @@ function WeaveDelays:Initialize()
 		local textureControl,markerTextureControl,skillTextureControl,labelControl
 		local k=1
 		local chatFontSize = GetChatFontSize()
-		local fontName = string.format("%s|%s|%s", "EsoUI/Common/Fonts/Univers57.slug", math.ceil(0.016*chatFontSize*w), "soft-shadow-thick")
+		local fontName = string.format("%s|%s|%s", FONT_FACE, math.ceil(0.016*chatFontSize*w), FONT_STYLE)
+
+		if self.savedVariables.showAverageDelay then
+			local avgLabelFontName = string.format("%s|%s|%s", FONT_FACE, math.ceil(0.024*chatFontSize*w), FONT_STYLE)
+			self.averageDelayLabel = WINDOW_MANAGER:CreateControl(prefix.."Avg", WEAVEDELAYSBAR, CT_LABEL)
+			self.averageDelayLabel:SetFont(avgLabelFontName)
+			self.averageDelayLabel:SetDimensions((w+m)*n, avgLabelHeight)
+			self.averageDelayLabel:SetAnchor(TOPRIGHT, WEAVEDELAYSBAR, TOPRIGHT, -2, 0)
+			self.averageDelayLabel:SetHorizontalAlignment(TEXT_ALIGN_RIGHT)
+		else
+			self.averageDelayLabel = nil
+		end
+
 		for j=1, r do
 			for i=1, n do
 				textureControl = WINDOW_MANAGER:CreateControl(prefix.."L"..k, bg, CT_TEXTURE)
@@ -1028,6 +1073,22 @@ function WeaveDelays.InitializeMenu()
 			NotifyReloadUI()
 		end,
 		default = false,
+	},
+	{
+		type        = LHAS.ST_CHECKBOX,
+		label       = "Show average delay",
+		tooltip     = "Show the average weaving delay in seconds",
+		disable     = function()
+			return not self.savedVariables.showDelayBar
+		end,
+		getFunction = function()
+			return self.savedVariables.showAverageDelay
+		end,
+		setFunction = function(value)
+			self.savedVariables.showAverageDelay = value
+			NotifyReloadUI()
+		end,
+		default = true,
 	},
 	{
 		type        = LHAS.ST_DROPDOWN,

@@ -10,6 +10,10 @@ function WeaveDelayLog.new()
     local NORMAL_LATENCY_TIMEOUT_MS = 1000
     local HIGH_LATENCY_TIMEOUT_MS   = 1600
 
+    local AVG_MISSED_PENALTY_MS  = 1000
+    local AVG_DELAY_CLAMP_MIN_MS = 1
+    local AVG_DELAY_CLAMP_MAX_MS = 1000
+
     local PA_IDX_TIME         = 1
     local PA_IDX_BAR_INDEX    = 2
     local PA_IDX_SLOT_ID      = 3
@@ -59,6 +63,8 @@ function WeaveDelayLog.new()
 			end
 		end
 		pendingSkillActions = newPendingSkillActions
+
+		self.resetAverageDelay()
 	end
 
 	function self.endCombat()
@@ -71,6 +77,46 @@ function WeaveDelayLog.new()
 		pendingSkillActions = {}
 		combatEndMarkerPosition = -1
 		combatEndTime = -1
+		self.resetAverageDelay()
+	end
+
+	-- running average of weave delay: kept as an incrementally updated total/count
+	-- rather than recomputed from the full history, since playerActions can grow
+	-- large over a long fight and this is queried on almost every combat event
+	local avgSum, avgCount        = 0, 0
+	local avgPendingQueue         = {}
+	local avgPrevSkillEndTime     = nil
+	local avgLightAttackRef       = nil
+	local avgFirstLightAttackSeen = false
+
+	function self.resetAverageDelay()
+		avgSum, avgCount        = 0, 0
+		avgPendingQueue         = {}
+		avgPrevSkillEndTime     = nil
+		avgLightAttackRef       = nil
+		avgFirstLightAttackSeen = false
+	end
+
+	-- a combo's light attack confirmation can arrive after the combo itself has
+	-- closed, so recently-closed combos wait here until that window has passed
+	local function flushSettledAverageEntries(now)
+		while avgPendingQueue[1] ~= nil and now - avgPendingQueue[1][2][PA_IDX_TIME] > settings.lightAttackTimeout do
+			local entry = table.remove(avgPendingQueue, 1)
+			if entry[2][PA_IDX_LA_CONFIRMED] then
+				avgSum = avgSum + entry[1]
+			else
+				avgSum = avgSum + AVG_MISSED_PENALTY_MS
+			end
+			avgCount = avgCount + 1
+		end
+	end
+
+	function self.getAverageDelay()
+		flushSettledAverageEntries(GetGameTimeMilliseconds())
+		if avgCount == 0 then
+			return nil
+		end
+		return avgSum / avgCount
 	end
 
     function self.registerAction(playerAction)
@@ -82,6 +128,26 @@ function WeaveDelayLog.new()
 			table.insert(playerActions, idx, playerAction)
 			if idx <= combatEndMarkerPosition then
 				combatEndMarkerPosition = combatEndMarkerPosition + 1
+			end
+
+			flushSettledAverageEntries(playerAction[PA_IDX_TIME])
+			if playerAction[PA_IDX_SLOT_ID] > ACTION_SKILL_OFFSET then
+				if avgPrevSkillEndTime ~= nil and avgFirstLightAttackSeen then
+					if avgLightAttackRef == nil then
+						avgSum   = avgSum + AVG_MISSED_PENALTY_MS
+						avgCount = avgCount + 1
+					else
+						local rawDelay = playerAction[PA_IDX_TIME] - avgPrevSkillEndTime
+						local clamped  = math.max(math.min(rawDelay, AVG_DELAY_CLAMP_MAX_MS), AVG_DELAY_CLAMP_MIN_MS)
+						table.insert(avgPendingQueue, {clamped, avgLightAttackRef})
+					end
+				end
+				local duration = math.max((playerAction[PA_IDX_CAST_TIME] or 0) + (playerAction[PA_IDX_CHANNEL_TIME] or 0), settings.GCD)
+				avgPrevSkillEndTime = playerAction[PA_IDX_TIME] + duration
+				avgLightAttackRef   = nil
+			elseif playerAction[PA_IDX_SLOT_ID] == ACTION_LIGHT_ATTACK then
+				avgLightAttackRef       = playerAction
+				avgFirstLightAttackSeen = true
 			end
 		end
     end
