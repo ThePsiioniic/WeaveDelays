@@ -16,7 +16,6 @@ local prefix = "WEAVEDELAYSBAR"
 
 self.name             = 'WeaveDelays'
 self.slash            = "/weavedelays"
-self.version          = "1.1.0"
 self.DefaultSavedVars = {
 	["accountWide"]=false,
 	["delayBarOffsetX"]=300,
@@ -429,7 +428,7 @@ function WeaveDelays.UpdateDelayBar()
 
 	if self.averageDelayLabel ~= nil then
 		local avgDelayMs = self.log.getAverageDelay()
-		if avgDelayMs ~= nil then
+		if avgDelayMs ~= nil and sv.showAverageDelay then
 			self.averageDelayLabel:SetText(string.format("%.2f", avgDelayMs * 0.001))
 		else
 			self.averageDelayLabel:SetText("")
@@ -625,11 +624,7 @@ function WeaveDelays:Initialize()
 	if self.savedVariables.showDelayBar then
 		self.restoreDelayBarPosition()
 
-		local avgLabelHeight, avgGap = 0, 0
-		if self.savedVariables.showAverageDelay then
-			avgLabelHeight = math.ceil(w*0.44)
-			avgGap         = 2
-		end
+		local avgLabelHeight, avgGap = math.ceil(w*0.44), 2
 
 		WEAVEDELAYSBAR:SetDimensions((w+m)*n+2, h*r + avgLabelHeight + avgGap)
 		bg:ClearAnchors()
@@ -650,16 +645,12 @@ function WeaveDelays:Initialize()
 		local chatFontSize = GetChatFontSize()
 		local fontName = string.format("%s|%s|%s", FONT_FACE, math.ceil(0.016*chatFontSize*w), FONT_STYLE)
 
-		if self.savedVariables.showAverageDelay then
-			local avgLabelFontName = string.format("%s|%s|%s", FONT_FACE, math.ceil(0.024*chatFontSize*w), FONT_STYLE)
-			self.averageDelayLabel = WINDOW_MANAGER:CreateControl(prefix.."Avg", WEAVEDELAYSBAR, CT_LABEL)
-			self.averageDelayLabel:SetFont(avgLabelFontName)
-			self.averageDelayLabel:SetDimensions((w+m)*n, avgLabelHeight)
-			self.averageDelayLabel:SetAnchor(TOPRIGHT, WEAVEDELAYSBAR, TOPRIGHT, -2, 0)
-			self.averageDelayLabel:SetHorizontalAlignment(TEXT_ALIGN_RIGHT)
-		else
-			self.averageDelayLabel = nil
-		end
+		local avgLabelFontName = string.format("%s|%s|%s", FONT_FACE, math.ceil(0.024*chatFontSize*w), FONT_STYLE)
+		self.averageDelayLabel = WINDOW_MANAGER:CreateControl(prefix.."Avg", WEAVEDELAYSBAR, CT_LABEL)
+		self.averageDelayLabel:SetFont(avgLabelFontName)
+		self.averageDelayLabel:SetDimensions((w+m)*n, avgLabelHeight)
+		self.averageDelayLabel:SetAnchor(TOPRIGHT, WEAVEDELAYSBAR, TOPRIGHT, -2, 0)
+		self.averageDelayLabel:SetHorizontalAlignment(TEXT_ALIGN_RIGHT)
 
 		for j=1, r do
 			for i=1, n do
@@ -725,6 +716,11 @@ function WeaveDelays.InitializeMenu()
 		allowDefaults = true,
 		allowRefresh  = true,
 	})
+
+	local paletteItems = {}
+	for _, name in ipairs(self.getPalettesList()) do
+		table.insert(paletteItems, { name = name, data = name })
+	end
 
 	settings:AddSettings({
 	{
@@ -800,6 +796,7 @@ function WeaveDelays.InitializeMenu()
 			self.savedVariables.delayBarFrameR, self.savedVariables.delayBarFrameG, self.savedVariables.delayBarFrameB, self.savedVariables.delayBarFrameA = r, g, b, a
 			WeaveDelays.UpdateUIcustomizations()
 		end,
+		default = {0.8, 0.8, 0.8, 1.0},
 	},
 	{
 		type        = LHAS.ST_SLIDER,
@@ -940,6 +937,7 @@ function WeaveDelays.InitializeMenu()
 		setFunction = function(value)
 			self.savedVariables.textLightAttackMissed = value
 		end,
+		default = "M",
 	},
 	{
 		type        = LHAS.ST_EDIT,
@@ -954,6 +952,7 @@ function WeaveDelays.InitializeMenu()
 		setFunction = function(value)
 			self.savedVariables.textLightAttackDisappeared = value
 		end,
+		default = "X",
 	},
 	{
 		type        = LHAS.ST_EDIT,
@@ -968,6 +967,7 @@ function WeaveDelays.InitializeMenu()
 		setFunction = function(value)
 			self.savedVariables.textLightAttackQueued = value
 		end,
+		default = "Q",
 	},
 	{
 		type        = LHAS.ST_EDIT,
@@ -981,6 +981,7 @@ function WeaveDelays.InitializeMenu()
 		setFunction = function(value)
 			self.savedVariables.textBashed = value
 		end,
+		default = "B",
 	},
 	{
 		type        = LHAS.ST_CHECKBOX,
@@ -1069,13 +1070,7 @@ function WeaveDelays.InitializeMenu()
 		type        = LHAS.ST_DROPDOWN,
 		label       = "Palette",
 		tooltip     = "Color palette to use for delay indicator.",
-		items       = function()
-			local result = {}
-			for _, name in ipairs(self.getPalettesList()) do
-				table.insert(result, { name = name, data = name })
-			end
-			return result
-		end,
+		items       = paletteItems,
 		disable     = function()
 			return not self.savedVariables.showDelayBar
 		end,
@@ -1086,6 +1081,7 @@ function WeaveDelays.InitializeMenu()
 			self.savedVariables.delayBarPalette = name
 			self.UpdateDelayBar()
 		end,
+		default = "greenred",
 	},
 	{
 		type  = LHAS.ST_SECTION,
